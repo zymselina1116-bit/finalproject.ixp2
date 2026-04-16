@@ -1,0 +1,702 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta content="initial-scale=1.0,width=device-width" name="viewport">
+  <title>Your Tarot Reading</title>
+
+  <script src="tarot-data.js"></script>
+  <link href="css/reset.css" rel="stylesheet" type="text/css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Quantico:wght@400;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --bg: #faf9f5;
+      --ink: #24221d;
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--ink);
+      font-family: "Quantico", sans-serif;
+    }
+
+    body > header {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      padding: 1.5rem 4.8vw 0;
+      z-index: 100;
+      pointer-events: none;
+    }
+
+    body > header * {
+      pointer-events: auto;
+    }
+
+    .site-nav__links {
+      display: flex;
+      gap: 0.75rem;
+      margin: 0;
+      padding: 0;
+    }
+
+    .site-nav__links li { list-style: none; }
+
+    .site-nav__links a,
+    .site-nav__links .nav-current {
+      color: #000;
+      font-family: "Quantico", sans-serif;
+      font-size: 1rem;
+      font-weight: 400;
+      text-decoration: underline;
+    }
+
+    .site-nav__links .nav-current { font-weight: 700; }
+
+    /* ── Tips box ────────────────────────────────────────────── */
+    #tips {
+      position: fixed;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: 30.5rem;
+      height: 13.375rem;
+      background: #fff;
+      box-shadow: 0 4px 4px 2px rgba(0, 0, 0, 0.25);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      z-index: 200;
+    }
+
+    @media (max-width: 640px) {
+      #tips {
+        width: calc(100vw - 2rem);
+        height: auto;
+        padding: 2.5rem 1.5rem;
+      }
+    }
+
+    #tips-close {
+      position: absolute;
+      top: 0.75rem;
+      left: 0.75rem;
+      width: 0.84488rem;
+      height: 0.84488rem;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #tips-close svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    #tips p {
+      margin: 0;
+      color: #000;
+      font-family: "Quantico", sans-serif;
+      font-size: 1rem;
+      font-style: normal;
+      font-weight: 400;
+      line-height: normal;
+      text-align: center;
+    }
+
+    /* ── Infinite canvas ─────────────────────────────────────── */
+    #canvas-wrap {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      cursor: grab;
+      touch-action: none;
+      user-select: none;
+    }
+
+    #canvas-wrap.dragging { cursor: grabbing; }
+
+    #canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      transform-origin: 0 0;
+      will-change: transform;
+    }
+
+    /* ── Tarot card ──────────────────────────────────────────── */
+    .tarot-card {
+      position: absolute;
+      width: 220px;
+      height: 385px;
+      border-radius: 10px;
+      box-shadow: 0 3px 12px rgba(0, 0, 0, 0.22);
+      perspective: 900px;
+      cursor: pointer;
+      /* rotation comes from --rot custom property set per-card in JS */
+      transform: rotate(var(--rot, 0deg));
+    }
+
+    /* floating pulse after flip */
+    @keyframes card-float {
+      0%, 100% {
+        transform: rotate(var(--rot, 0deg)) scale(1);
+        box-shadow: 0 8px 28px rgba(0, 0, 0, 0.38);
+      }
+      50% {
+        transform: rotate(var(--rot, 0deg)) scale(1.07);
+        box-shadow: 0 22px 52px rgba(0, 0, 0, 0.52);
+      }
+    }
+
+    .tarot-card.flipped {
+      /* starts after the 0.7s flip completes; fill:both keeps scale(1) during delay */
+      animation: card-float 2.6s ease-in-out 0.7s infinite both;
+    }
+
+    /* 3-D flip inner */
+    .card-inner {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    .tarot-card.flipped .card-inner {
+      transform: rotateY(180deg);
+    }
+
+    /* Shared face styles */
+    .card-face {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border-radius: 10px;
+      overflow: hidden;
+      backface-visibility: hidden;
+      -webkit-backface-visibility: hidden;
+    }
+
+    .card-face img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      pointer-events: none;
+      -webkit-user-drag: none;
+    }
+
+    /* Front = hidden until flipped */
+    .card-front {
+      transform: rotateY(180deg);
+    }
+
+    /* Reversed card: front image rotated 180° */
+    .card-front.reversed img {
+      transform: rotate(180deg);
+    }
+
+    /* ── Reading panel ───────────────────────────────────────── */
+    #reading-overlay {
+      position: fixed;
+      inset: 0;
+      z-index: 600;
+      display: none;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #reading-panel {
+      position: relative;
+      width: min(65.75rem, calc(100vw - 2rem));
+      height: 33rem;
+      background: #FFF;
+      box-shadow: 0 4px 4px 2px rgba(0, 0, 0, 0.25);
+      display: flex;
+      flex-direction: row;
+    }
+
+    #reading-close {
+      position: absolute;
+      top: 1rem;
+      left: 1rem;
+      width: 0.845rem;
+      height: 0.845rem;
+      cursor: pointer;
+      background: none;
+      border: none;
+      padding: 0;
+      z-index: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    #reading-close svg {
+      width: 100%;
+      height: 100%;
+      display: block;
+    }
+
+    /* Left half — card image */
+    #reading-left {
+      width: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 2.75rem 1.75rem 2.75rem 3rem;
+      box-sizing: border-box;
+    }
+
+    #reading-left img {
+      display: block;
+      height: calc(33rem - 9rem);
+      width: auto;
+      max-width: 100%;
+      object-fit: contain;
+      border-radius: 6px;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
+    }
+
+    #reading-left img.reading-reversed {
+      transform: rotate(180deg);
+    }
+
+    /* Right half — text */
+    #reading-right {
+      width: 50%;
+      padding: 2.75rem 3rem 2.75rem 1.75rem;
+      box-sizing: border-box;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      font-family: "Quantico", sans-serif;
+    }
+
+    #reading-card-name {
+      font-size: 1rem;
+      font-weight: 700;
+      line-height: normal;
+      margin: 0 0 1.25rem 0;
+    }
+
+    .reading-line {
+      font-size: 1rem;
+      font-weight: 400;
+      line-height: 1.6;
+      margin: 0 0 0.85rem 0;
+    }
+
+    .reading-line:last-child { margin-bottom: 0; }
+
+    /* ── Mobile — stacked ────────────────────────────────────── */
+    @media (max-width: 640px) {
+      #reading-panel {
+        flex-direction: column;
+        height: auto;
+        max-height: calc(100svh - 2rem);
+        overflow-y: auto;
+        width: calc(100vw - 2rem);
+      }
+
+      #reading-left {
+        width: 100%;
+        padding: 3rem 2.5rem 1.5rem;
+        justify-content: center;
+      }
+
+      #reading-left img {
+        height: auto;
+        max-height: 16rem;
+        width: auto;
+      }
+
+      #reading-right {
+        width: 100%;
+        padding: 1.5rem 2.5rem 2.5rem;
+        justify-content: flex-start;
+      }
+    }
+
+    /* ── Tablet — shrink height gracefully ───────────────────── */
+    @media (max-width: 900px) and (min-width: 641px) {
+      #reading-panel {
+        height: auto;
+        min-height: 24rem;
+      }
+
+      #reading-left img {
+        height: calc(24rem - 5.5rem);
+      }
+    }
+  </style>
+</head>
+
+<body>
+
+  <header>
+    <nav class="site-nav">
+      <ul class="site-nav__links">
+        <li><a href="index.html">ENTRY</a> ></li>
+        <li class="nav-current">YOUR READING</li>
+      </ul>
+    </nav>
+  </header>
+
+  <div id="tips">
+    <button id="tips-close" aria-label="Close tips">
+      <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <line x1="1" y1="1" x2="13" y2="13" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
+        <line x1="13" y1="1" x2="1" y2="13" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
+      </svg>
+    </button>
+    <p>Drag around to pick a tarot card</p>
+  </div>
+
+  <div id="canvas-wrap">
+    <div id="canvas"></div>
+  </div>
+
+  <div id="reading-overlay">
+    <div id="reading-panel">
+      <button id="reading-close" aria-label="Close reading">
+        <svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <line x1="1" y1="1" x2="13" y2="13" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="13" y1="1" x2="1" y2="13" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
+        </svg>
+      </button>
+
+      <div id="reading-left">
+        <img id="reading-card-img" src="" alt="">
+      </div>
+
+      <div id="reading-right">
+        <p id="reading-card-name"></p>
+        <p class="reading-line" id="reading-luck"></p>
+        <p class="reading-line" id="reading-mood"></p>
+        <p class="reading-line" id="reading-event"></p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var CARD_W  = 220;
+      var CARD_H  = 385;
+      var IMG_SRC = 'images/tarot%20card/tarot%20back.png';
+
+      /* ── Seeded LCG random ─────────────────────────────────── */
+      var _seed = 8675309;
+      function rand() {
+        _seed = (_seed * 1664525 + 1013904223) & 0x7fffffff;
+        return _seed / 0x7fffffff;
+      }
+      function randRange(a, b) { return a + rand() * (b - a); }
+
+      /*
+        Concentric rings — card centers placed at radius r from canvas origin.
+        Ring spacing 500 px, same-ring arc spacing ≥ 480 px → no overlap even
+        with ±20 px jitter (card diagonal ≈ 443 px).
+
+        Counts:  1 + 7 + 13 + 19 + 25 + 13 = 78
+        Radii:   0   540  1040  1540  2040  2600
+      */
+      var RINGS = [
+        { count:  1, radius:    0 },
+        { count:  7, radius:  540 },
+        { count: 13, radius: 1040 },
+        { count: 19, radius: 1540 },
+        { count: 25, radius: 2040 },
+        { count: 13, radius: 2600 }
+      ];
+
+      var canvas = document.getElementById('canvas');
+
+      RINGS.forEach(function (ring) {
+        var step        = (2 * Math.PI) / ring.count;
+        var angleOffset = randRange(0, 2 * Math.PI); // rotate each ring randomly
+
+        for (var i = 0; i < ring.count; i++) {
+          var angle = i * step + angleOffset;
+          var r     = ring.radius + randRange(-20, 20);
+          var cx    = Math.cos(angle) * r - CARD_W / 2;
+          var cy    = Math.sin(angle) * r - CARD_H / 2;
+          var rot   = randRange(-9, 9);
+
+          var card = document.createElement('div');
+          card.className = 'tarot-card';
+          card.style.left = cx + 'px';
+          card.style.top  = cy + 'px';
+          card.style.setProperty('--rot', rot + 'deg');
+
+          var inner = document.createElement('div');
+          inner.className = 'card-inner';
+
+          var backFace = document.createElement('div');
+          backFace.className = 'card-face card-back';
+          var backImg = document.createElement('img');
+          backImg.src = IMG_SRC;
+          backImg.alt = 'Tarot card back';
+          backFace.appendChild(backImg);
+
+          var frontFace = document.createElement('div');
+          frontFace.className = 'card-face card-front';
+
+          inner.appendChild(backFace);
+          inner.appendChild(frontFace);
+          card.appendChild(inner);
+          canvas.appendChild(card);
+        }
+      });
+
+      /* ── Card flip on click ───────────────────────────────── */
+      var CLICK_THRESHOLD = 6; // px — distinguish click from drag
+      var flippedCard = null;  // only one card can be revealed at a time
+
+      canvas.addEventListener('mousedown', function (e) {
+        var card = e.target.closest('.tarot-card');
+        if (!card) return;
+        card._flipStartX = e.clientX;
+        card._flipStartY = e.clientY;
+      });
+
+      canvas.addEventListener('click', function (e) {
+        var card = e.target.closest('.tarot-card');
+        if (!card) return;
+
+        var dx = e.clientX - (card._flipStartX || e.clientX);
+        var dy = e.clientY - (card._flipStartY || e.clientY);
+        if (Math.sqrt(dx * dx + dy * dy) > CLICK_THRESHOLD) return;
+
+        // Clicking the already-flipped card opens the reading panel
+        if (card.classList.contains('flipped')) {
+          openReading(card);
+          return;
+        }
+
+        // Only one card can be flipped at a time
+        if (flippedCard) return;
+
+        // Pick a random card from TAROT_DATA
+        var pick = TAROT_DATA[Math.floor(Math.random() * TAROT_DATA.length)];
+        var isReversed = Math.random() < 0.5;
+
+        var front = card.querySelector('.card-front');
+        var img = document.createElement('img');
+        img.src = pick.image;
+        img.alt = pick.name + (isReversed ? ' (Reversed)' : '');
+        if (isReversed) front.classList.add('reversed');
+        front.appendChild(img);
+
+        card.dataset.cardId      = pick.id;
+        card.dataset.cardName    = pick.name;
+        card.dataset.orientation = isReversed ? 'reversed' : 'upright';
+
+        card.classList.add('flipped');
+        flippedCard = card;
+      });
+
+      /* ── Reading panel ─────────────────────────────────────── */
+      var overlay   = document.getElementById('reading-overlay');
+      var cardImg   = document.getElementById('reading-card-img');
+      var cardName  = document.getElementById('reading-card-name');
+      var luckEl    = document.getElementById('reading-luck');
+      var moodEl    = document.getElementById('reading-mood');
+      var eventEl   = document.getElementById('reading-event');
+
+      function openReading(card) {
+        var id      = card.dataset.cardId;
+        var orient  = card.dataset.orientation;
+        var data    = null;
+        for (var i = 0; i < TAROT_DATA.length; i++) {
+          if (TAROT_DATA[i].id === id) { data = TAROT_DATA[i]; break; }
+        }
+        if (!data) return;
+
+        var reading    = data[orient];
+        var isReversed = orient === 'reversed';
+
+        cardImg.src = data.image;
+        cardImg.alt = data.name + (isReversed ? ' (Reversed)' : '');
+        cardImg.className = isReversed ? 'reading-reversed' : '';
+
+        cardName.textContent = data.name + (isReversed ? ' (Reversed)' : '');
+        luckEl.innerHTML  = '<strong>Luck:</strong> '           + (reading.luck  || '—');
+        moodEl.innerHTML  = '<strong>Mood:</strong> '           + (reading.mood  || '—');
+        eventEl.innerHTML = '<strong>Possible Event:</strong> ' + (reading.event || '—');
+
+        overlay.style.display = 'flex';
+      }
+
+      document.getElementById('reading-close').addEventListener('click', function () {
+        overlay.style.display = 'none';
+      });
+
+      /* ── Pan / zoom state ──────────────────────────────────── */
+      var tx = 0, ty = 0, scale = 1;
+
+      /*
+        BOUNDARY: outermost ring radius (2600) + jitter (20) +
+        half card diagonal (~222) + breathing room = 3000.
+        The viewport centre (in world coords) is clamped within this radius,
+        so you can reach every outermost card but can't scroll past them.
+      */
+      var BOUNDARY = 3000;
+
+      function clampTransform() {
+        var hw = window.innerWidth  / 2;
+        var hh = window.innerHeight / 2;
+        tx = Math.max(hw - BOUNDARY * scale, Math.min(hw + BOUNDARY * scale, tx));
+        ty = Math.max(hh - BOUNDARY * scale, Math.min(hh + BOUNDARY * scale, ty));
+      }
+
+      // Centre the canvas origin in the viewport on load
+      function initTransform() {
+        tx = window.innerWidth  / 2;
+        ty = window.innerHeight / 2;
+        applyTransform();
+      }
+
+      function applyTransform() {
+        canvas.style.transform =
+          'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')';
+      }
+      initTransform();
+
+      var wrap = document.getElementById('canvas-wrap');
+
+      /*
+        Scale limits differ by screen size so card density feels right.
+        Mobile  (≤640px): max=0.75 (~5 cards), min=0.22 (~18 cards)
+        Desktop (>640px): max=1.6  (~6 cards), min=0.38 (~30 cards)
+      */
+      var isMobile  = window.innerWidth <= 640;
+      var MIN_SCALE = isMobile ? 0.22 : 0.38;
+      var MAX_SCALE = isMobile ? 0.75 : 1.6;
+
+      /* ── Mouse pan ─────────────────────────────────────────── */
+      var dragging   = false;
+      var mouseLastX = 0, mouseLastY = 0;
+
+      wrap.addEventListener('mousedown', function (e) {
+        if (e.target.closest('.tarot-card')) return;
+        dragging   = true;
+        mouseLastX = e.clientX;
+        mouseLastY = e.clientY;
+        wrap.classList.add('dragging');
+        e.preventDefault();
+      });
+
+      document.addEventListener('mousemove', function (e) {
+        if (!dragging) return;
+        tx += e.clientX - mouseLastX;
+        ty += e.clientY - mouseLastY;
+        mouseLastX = e.clientX;
+        mouseLastY = e.clientY;
+        clampTransform();
+        applyTransform();
+      });
+
+      document.addEventListener('mouseup', function () {
+        dragging = false;
+        wrap.classList.remove('dragging');
+      });
+
+      /* ── Scroll zoom — gentler factor ──────────────────────── */
+      wrap.addEventListener('wheel', function (e) {
+        e.preventDefault();
+        var factor = e.deltaY < 0 ? 1.05 : 0.95;   // was 1.1 / 0.9
+        var rect   = wrap.getBoundingClientRect();
+        var mx     = e.clientX - rect.left;
+        var my     = e.clientY - rect.top;
+        tx    = mx - (mx - tx) * factor;
+        ty    = my - (my - ty) * factor;
+        scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale * factor));
+        clampTransform();
+        applyTransform();
+      }, { passive: false });
+
+      /* ── Touch pan + pinch zoom ────────────────────────────── */
+      var touchState = null;
+
+      wrap.addEventListener('touchstart', function (e) {
+        e.preventDefault();
+        if (e.touches.length === 1) {
+          touchState = { type: 'pan', x: e.touches[0].clientX, y: e.touches[0].clientY };
+        } else if (e.touches.length >= 2) {
+          var t0 = e.touches[0], t1 = e.touches[1];
+          touchState = {
+            type: 'pinch',
+            dist: Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY),
+            midX: (t0.clientX + t1.clientX) / 2,
+            midY: (t0.clientY + t1.clientY) / 2
+          };
+        }
+      }, { passive: false });
+
+      wrap.addEventListener('touchmove', function (e) {
+        e.preventDefault();
+        if (!touchState) return;
+
+        if (e.touches.length === 1 && touchState.type === 'pan') {
+          tx += e.touches[0].clientX - touchState.x;
+          ty += e.touches[0].clientY - touchState.y;
+          touchState.x = e.touches[0].clientX;
+          touchState.y = e.touches[0].clientY;
+          clampTransform();
+          applyTransform();
+
+        } else if (e.touches.length >= 2) {
+          var t0   = e.touches[0], t1 = e.touches[1];
+          var dist = Math.hypot(t1.clientX - t0.clientX, t1.clientY - t0.clientY);
+          var midX = (t0.clientX + t1.clientX) / 2;
+          var midY = (t0.clientY + t1.clientY) / 2;
+
+          if (touchState.type === 'pinch') {
+            var factor = dist / touchState.dist;
+            tx    = midX - (midX - tx) * factor;
+            ty    = midY - (midY - ty) * factor;
+            tx   += midX - touchState.midX;
+            ty   += midY - touchState.midY;
+            scale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, scale * factor));
+          }
+          touchState = { type: 'pinch', dist: dist, midX: midX, midY: midY };
+          clampTransform();
+          applyTransform();
+        }
+      }, { passive: false });
+
+      wrap.addEventListener('touchend', function (e) {
+        if (e.touches.length === 0) {
+          touchState = null;
+        } else if (e.touches.length === 1) {
+          touchState = { type: 'pan', x: e.touches[0].clientX, y: e.touches[0].clientY };
+        }
+      }, { passive: false });
+
+      /* ── Tips close ────────────────────────────────────────── */
+      document.getElementById('tips-close').addEventListener('click', function () {
+        document.getElementById('tips').style.display = 'none';
+      });
+
+    })();
+  </script>
+
+</body>
+</html>

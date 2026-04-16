@@ -1,0 +1,712 @@
+@import url("https://fonts.googleapis.com/css2?family=Quantico:wght@400;700&display=swap");
+
+:root {
+  --bg: #faf9f5;
+  --ink: #24221d;
+  --folder: #d9d6cf;
+  --folder-dark: #cbc8c0;
+  --folder-warm: #ece3b2;
+  --paper: #f7f5ef;
+  --rule: #91ADD5;
+  --border: 1.5px solid #444;
+  --line-step: 2.0625rem;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  font-size: 16px;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  background: var(--bg);
+  color: var(--ink);
+  font-family: "Quantico", sans-serif;
+}
+
+img {
+  display: block;
+  max-width: 100%;
+}
+
+body > header {
+  padding: 4rem 4.8vw 0;
+}
+
+.site-nav__links {
+  display: flex;
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+}
+
+.site-nav__links li {
+  list-style: none;
+}
+
+.site-nav__links a,
+.site-nav__links .nav-current {
+  color: #000;
+  font-family: "Quantico", sans-serif;
+  font-size: 1rem;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  text-decoration-line: underline;
+  text-decoration-style: solid;
+  text-decoration-skip-ink: auto;
+  text-decoration-thickness: auto;
+  text-underline-offset: auto;
+  text-underline-position: from-font;
+}
+
+.site-nav__links .nav-current {
+  font-weight: 700;
+}
+
+.drawer {
+  position: relative;
+  width: 39.25rem;
+  height: 10.8125rem;
+  margin: 17rem auto 0;
+  background: #F1F1F1;
+  box-shadow: 0 4px 8px 5px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.drawer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1.125rem;
+  background: #C4C4C4;
+  box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
+  transition: background 0.2s;
+}
+
+.drawer-btn {
+  display: inline-block;
+  padding: 0.78rem 2.25rem;
+  background: #DCDCC4;
+  box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
+  color: #000;
+  font-family: "Quantico", sans-serif;
+  font-size: 1rem;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  transition: background 0.2s, color 0.2s, font-weight 0.2s;
+  position: relative;
+  z-index: 1;
+}
+
+/* Hover states */
+.drawer:hover {
+  background: #DEDEDE;
+  box-shadow: 0 4px 8px 5px rgba(0, 0, 0, 0.25);
+}
+
+.drawer:hover::before {
+  background: #B6B6B6;
+  box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
+}
+
+.drawer:hover .drawer-btn {
+  background: #B7B69F;
+  box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
+  color: #FFF;
+  font-weight: 700;
+}
+
+/* ── Tarot start link ────────────────────────────────────────── */
+.tarot-start {
+  position: fixed;
+  bottom: 3rem;
+  left: 50%;
+  transform: translateX(-50%);
+  color: var(--ink);
+  font-family: "Quantico", sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  text-decoration: underline;
+  white-space: nowrap;
+  z-index: 10;
+}
+
+.tarot-start:hover {
+  font-weight: 700;
+}
+
+/* ── Folder stack — fixed from screen bottom ─────────────────── */
+/*
+  Border technique: clip-path clips CSS borders, so we use two layers:
+    - outer .folder_N: position:fixed sizing, drop-shadow filter
+      (filter sees the clipped inner = renders as 1px black border)
+    - inner .folder-body: clip-path + background color
+  This is the only reliable CSS-only way to border a clip-path shape.
+
+  Tab shape: trapezoidal (wider at base, narrower at tip) matching
+  the file detail page folder tab style.
+*/
+
+/* ── Outer positioning shells ──────────────────────────────── */
+.folder_1,
+.folder_2,
+.folder_3,
+.folder_4,
+.folder_5,
+.folder_6,
+.folder_7,
+.folder_8,
+.folder_9 {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: pointer;
+  user-select: none;
+  /* only height transitions; bottom is set once by JS */
+  transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  /* filter applied to outer → sees clipped inner → crisp 1px black border */
+  filter:
+    drop-shadow(-1px  0    0 #000)
+    drop-shadow( 1px  0    0 #000)
+    drop-shadow( 0   -1px  0 #000)
+    drop-shadow( 0    1px  0 #000);
+}
+
+/*
+  Sizes: folder_1 (top/narrowest) → folder_9 (bottom/widest)
+  Width step  = (76.375 - 50.75) / 8 = 3.203125rem
+  Height step = (5.28125 - 5.1875) / 8 = 0.01172rem
+*/
+.folder_1 { width: min(50.750rem, calc(100vw - 1rem)); height: 5.1875rem;  z-index: 1; }
+.folder_2 { width: min(53.953rem, calc(100vw - 1rem)); height: 5.1992rem;  z-index: 2; }
+.folder_3 { width: min(57.156rem, calc(100vw - 1rem)); height: 5.2109rem;  z-index: 3; }
+.folder_4 { width: min(60.359rem, calc(100vw - 1rem)); height: 5.2227rem;  z-index: 4; }
+.folder_5 { width: min(63.563rem, calc(100vw - 1rem)); height: 5.2344rem;  z-index: 5; }
+.folder_6 { width: min(66.766rem, calc(100vw - 1rem)); height: 5.2461rem;  z-index: 6; }
+.folder_7 { width: min(69.969rem, calc(100vw - 1rem)); height: 5.2578rem;  z-index: 7; }
+.folder_8 { width: min(73.172rem, calc(100vw - 1rem)); height: 5.2695rem;  z-index: 8; }
+.folder_9 { width: min(76.375rem, calc(100vw - 1rem)); height: 5.28125rem; z-index: 9; }
+
+/* ── Inner body: clip-path + background ───────────────────── */
+.folder-body {
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+  transition: clip-path 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Colors — matching reference image order */
+.folder_1 .folder-body { background: var(--folder); }
+.folder_2 .folder-body { background: var(--folder-warm); }
+.folder_3 .folder-body { background: var(--folder); }
+.folder_4 .folder-body { background: var(--folder-dark); }
+.folder_5 .folder-body { background: #dbd8cd; }
+.folder_6 .folder-body { background: var(--folder); }
+.folder_7 .folder-body { background: #cac7bf; }
+.folder_8 .folder-body { background: var(--folder-warm); }
+.folder_9 .folder-body { background: var(--folder); }
+
+/*
+  Shape: body top is full width (0–100%), bottom tapers inward (5%–95%).
+  Tab: trapezoidal protrusion at top edge — wider at base, narrower at tip,
+  matching the file detail page tab style (polygon 0 100%, 8.6% 0, 91.4% 0, 100% 100%).
+  Approx: tab base width = 20%, tip inset = 1.7% each side.
+  Odd  = tab RIGHT: base 60%–80%, tip 61.7%–78.3%
+  Even = tab LEFT:  base 21%–41%, tip 22.7%–39.3%
+*/
+.folder_1 .folder-body,
+.folder_3 .folder-body,
+.folder_5 .folder-body,
+.folder_7 .folder-body,
+.folder_9 .folder-body {
+  clip-path: polygon(
+    0%     1.5rem,   /* top-left of body */
+    60%    1.5rem,   /* tab base left */
+    61.7%  0%,       /* tab tip left */
+    78.3%  0%,       /* tab tip right */
+    80%    1.5rem,   /* tab base right */
+    100%   1.5rem,   /* top-right of body */
+    98%    100%,     /* bottom-right (slight inward) */
+    2%     100%      /* bottom-left (slight inward) */
+  );
+}
+
+.folder_2 .folder-body,
+.folder_4 .folder-body,
+.folder_6 .folder-body,
+.folder_8 .folder-body {
+  clip-path: polygon(
+    0%     1.5rem,   /* top-left of body */
+    21%    1.5rem,   /* tab base left */
+    22.7%  0%,       /* tab tip left */
+    39.3%  0%,       /* tab tip right */
+    41%    1.5rem,   /* tab base right */
+    100%   1.5rem,   /* top-right of body */
+    98%    100%,     /* bottom-right (slight inward) */
+    2%     100%      /* bottom-left (slight inward) */
+  );
+}
+
+/* Expanded: taller, keep natural z-index so folders in front stay on top */
+.folder-expanded {
+  height: 13rem !important;
+}
+
+/* Straight 90° sides when dragging or expanded — animate from tapered */
+.folder-dragging .folder-body,
+.folder-expanded .folder-body {
+  transition: clip-path 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.folder_1.folder-dragging .folder-body,
+.folder_3.folder-dragging .folder-body,
+.folder_5.folder-dragging .folder-body,
+.folder_7.folder-dragging .folder-body,
+.folder_9.folder-dragging .folder-body,
+.folder_1.folder-expanded .folder-body,
+.folder_3.folder-expanded .folder-body,
+.folder_5.folder-expanded .folder-body,
+.folder_7.folder-expanded .folder-body,
+.folder_9.folder-expanded .folder-body {
+  clip-path: polygon(
+    0%     1.5rem,
+    60%    1.5rem,
+    61.7%  0%,
+    78.3%  0%,
+    80%    1.5rem,
+    100%   1.5rem,
+    100%   100%,
+    0%     100%
+  );
+}
+
+.folder_2.folder-dragging .folder-body,
+.folder_4.folder-dragging .folder-body,
+.folder_6.folder-dragging .folder-body,
+.folder_8.folder-dragging .folder-body,
+.folder_2.folder-expanded .folder-body,
+.folder_4.folder-expanded .folder-body,
+.folder_6.folder-expanded .folder-body,
+.folder_8.folder-expanded .folder-body {
+  clip-path: polygon(
+    0%     1.5rem,
+    21%    1.5rem,
+    22.7%  0%,
+    39.3%  0%,
+    41%    1.5rem,
+    100%   1.5rem,
+    100%   100%,
+    0%     100%
+  );
+}
+
+/* Date label — inside the tab, vertically centered in 1.5rem */
+.folder-label {
+  position: absolute;
+  top: 0;
+  height: 1.5rem;
+  display: flex;
+  align-items: center;
+  font-family: "Quantico", sans-serif;
+  font-size: 1rem;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  color: #000;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 1;
+}
+
+/* Odd tab center: (60+80)/2 = 70% */
+.folder_1 .folder-label,
+.folder_3 .folder-label,
+.folder_5 .folder-label,
+.folder_7 .folder-label,
+.folder_9 .folder-label {
+  left: 70%;
+  transform: translateX(-50%);
+}
+
+/* Even tab center: (21+41)/2 = 31% */
+.folder_2 .folder-label,
+.folder_4 .folder-label,
+.folder_6 .folder-label,
+.folder_8 .folder-label {
+  left: 31%;
+  transform: translateX(-50%);
+}
+
+/* Preview — hidden until drag starts */
+.folder-preview {
+  position: absolute;
+  top: 2rem;
+  left: 7%;
+  right: 7%;
+  bottom: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.15s ease;
+}
+
+.folder-dragging .folder-preview,
+.folder-expanded .folder-preview {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.folder-preview p {
+  font-family: "Quantico", sans-serif;
+  font-size: 1rem;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  color: #000;
+  margin: 0;
+  flex: 1;
+}
+
+.folder-preview img {
+  width: 5rem;
+  height: 8rem;
+  object-fit: cover;
+  border-radius: 3px;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
+  flex-shrink: 0;
+  display: block;
+}
+
+.file_313,
+.file_314,
+.file_315,
+.file_316,
+.file_317,
+.file_318,
+.file_319,
+.file_320,
+.file_321 {
+  position: relative;
+  width: min(50.75rem, calc(100vw - 4rem));
+  min-height: 64.5625rem;
+  margin: 5.6rem auto 0;
+  /* padding-top = 1.875rem + 2×2.0625rem = 6rem → text lands on lines */
+  padding: 6rem 0 8rem;
+  border: 1px solid #000;
+}
+
+/* Individual folder colors matching folder.html stack */
+.file_313 { background: var(--folder); }
+.file_314 { background: var(--folder-warm); }
+.file_315 { background: var(--folder); }
+.file_316 { background: var(--folder-dark); }
+.file_317 { background: #dbd8cd; }
+.file_318 { background: var(--folder); }
+.file_319 { background: #cac7bf; }
+.file_320 { background: var(--folder-warm); }
+.file_321 { background: var(--folder); }
+
+.file_313::before,
+.file_314::before,
+.file_315::before,
+.file_316::before,
+.file_317::before,
+.file_318::before,
+.file_319::before,
+.file_320::before,
+.file_321::before {
+  content: "";
+  position: absolute;
+  top: -1.875rem;
+  right: 5.845rem;
+  width: 11.836rem;
+  height: 1.875rem;
+  border-top: 1px solid #000;
+  border-bottom: 0;
+  clip-path: polygon(0 100%, 8.6% 0, 91.4% 0, 100% 100%);
+  filter: drop-shadow(-1px 0 0 #000) drop-shadow(1px 0 0 #000);
+  z-index: 2;
+}
+
+/* Tab color matches file body */
+.file_313::before { background: var(--folder); }
+.file_314::before { background: var(--folder-warm); }
+.file_315::before { background: var(--folder); }
+.file_316::before { background: var(--folder-dark); }
+.file_317::before { background: #dbd8cd; }
+.file_318::before { background: var(--folder); }
+.file_319::before { background: #cac7bf; }
+.file_320::before { background: var(--folder-warm); }
+.file_321::before { background: var(--folder); }
+
+.file_date {
+  position: absolute;
+  top: -1.25rem;
+  right: 7.25rem;
+  width: 9rem;
+  margin: 0;
+  text-align: center;
+  font-size: 1rem;
+  font-weight: 400;
+  z-index: 3;
+}
+
+.file_313::after,
+.file_314::after,
+.file_315::after,
+.file_316::after,
+.file_317::after,
+.file_318::after,
+.file_319::after,
+.file_320::after,
+.file_321::after {
+  content: "";
+  position: absolute;
+  left: 4rem;
+  right: 4rem;
+  top: 1.875rem;
+  bottom: 2.5rem;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      #ffffff,
+      #ffffff calc(2.0625rem - 1px),
+      var(--rule) calc(2.0625rem - 1px),
+      var(--rule) 2.0625rem
+    );
+  z-index: 0;
+}
+
+.file_313 > *:not(.file_date),
+.file_314 > *:not(.file_date),
+.file_315 > *:not(.file_date),
+.file_316 > *:not(.file_date),
+.file_317 > *:not(.file_date),
+.file_318 > *:not(.file_date),
+.file_319 > *:not(.file_date),
+.file_320 > *:not(.file_date),
+.file_321 > *:not(.file_date) {
+  position: relative;
+  z-index: 1;
+}
+
+div[class$="_text"] {
+  margin: 0 5.5rem;
+  padding-top: 0;
+}
+
+.prediction,
+.prediction_title .prediction {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: var(--line-step);
+}
+
+.name_of_tarot {
+  margin: 0;
+  padding-left: 1rem;
+  font-size: 1rem;
+  font-weight: 400;
+  line-height: var(--line-step);
+}
+
+.tarto_section {
+  margin: var(--line-step) 5.5rem 0;
+  overflow: hidden;
+}
+
+.tarto_section img {
+  float: left;
+  width: 9.3125rem;
+  height: 16.5rem; /* 8 × 2.0625rem — keeps grid rhythm */
+  object-fit: cover;
+  border-radius: 4px;
+  box-shadow: 0 2px 7px rgba(0, 0, 0, 0.14);
+  margin-right: 1.25rem;
+  display: block;
+}
+
+.tarot_reading_luck,
+.tarot_reading_mood,
+.tarot_reading_event,
+.diary_luck,
+.diary_mood,
+.diary_event {
+  margin: 0;
+  font-size: 1rem;
+  line-height: var(--line-step);
+}
+
+.prediction_title {
+  margin: var(--line-step) 5.5rem 0;
+}
+
+.diary {
+  margin: 0 5.5rem;
+  padding-left: 0;
+}
+
+.file_319 > img:last-child {
+  width: min(100%, 19rem);
+  margin: var(--line-step) auto 0;
+}
+
+.file_313 .diary::after,
+.file_314 .diary::after,
+.file_315 .diary::after,
+.file_316 .diary::after,
+.file_317 .diary::after,
+.file_318 .diary::after,
+.file_319 .diary::after,
+.file_320 .diary::after {
+  display: none;
+}
+
+/* ── Tablet (≤ 900px) ─────────────────────────────────────── */
+@media (max-width: 900px) {
+  body > header {
+    padding: 2.5rem 2rem 0;
+  }
+
+  .drawer {
+    margin-top: 12rem;
+  }
+
+  .file_313::after,
+  .file_314::after,
+  .file_315::after,
+  .file_316::after,
+  .file_317::after,
+  .file_318::after,
+  .file_319::after,
+  .file_320::after,
+  .file_321::after {
+    left: 2.5rem;
+    right: 2.5rem;
+  }
+
+  div[class$="_text"],
+  .tarto_section,
+  .prediction_title,
+  .diary {
+    margin-left: 4rem;
+    margin-right: 4rem;
+  }
+}
+
+/* ── Mobile (≤ 640px) ─────────────────────────────────────── */
+@media (max-width: 640px) {
+  body > header {
+    padding: 1.5rem 1rem 0;
+  }
+
+  .drawer {
+    width: min(39.25rem, calc(100vw - 2rem));
+    margin-top: 6rem;
+    height: auto;
+    min-height: 10.8125rem;
+  }
+
+  /* Mobile: folders fill full width */
+  .folder_1 { width: calc(100vw - 1rem); }
+  .folder_2 { width: calc(100vw - 1rem); }
+  .folder_3 { width: calc(100vw - 1rem); }
+  .folder_4 { width: calc(100vw - 1rem); }
+  .folder_5 { width: calc(100vw - 1rem); }
+  .folder_6 { width: calc(100vw - 1rem); }
+  .folder_7 { width: calc(100vw - 1rem); }
+  .folder_8 { width: calc(100vw - 1rem); }
+  .folder_9 { width: calc(100vw - 1rem); }
+
+  .folder-label {
+    font-size: 0.78rem;
+  }
+
+  .file_313,
+  .file_314,
+  .file_315,
+  .file_316,
+  .file_317,
+  .file_318,
+  .file_319,
+  .file_320,
+  .file_321 {
+    width: calc(100vw - 1.5rem);
+    min-height: 0;
+    padding: 3.9375rem 0 4.125rem;
+  }
+
+  .file_313::before,
+  .file_314::before,
+  .file_315::before,
+  .file_316::before,
+  .file_317::before,
+  .file_318::before,
+  .file_319::before,
+  .file_320::before,
+  .file_321::before {
+    top: -1.6875rem;
+    right: 0.75rem;
+    width: 7.5rem;
+    height: 1.6875rem;
+  }
+
+  .file_date {
+    top: -1.1rem;
+    right: 1.4rem;
+    width: 5.8rem;
+    font-size: 0.8rem;
+  }
+
+  .file_313::after,
+  .file_314::after,
+  .file_315::after,
+  .file_316::after,
+  .file_317::after,
+  .file_318::after,
+  .file_319::after,
+  .file_320::after,
+  .file_321::after {
+    left: 1.25rem;
+    right: 1.25rem;
+  }
+
+  div[class$="_text"],
+  .tarto_section,
+  .prediction_title,
+  .diary {
+    margin-left: 2rem;
+    margin-right: 2rem;
+  }
+
+  .tarto_section img {
+    float: none;
+    width: auto;
+    height: 12.375rem;
+    object-fit: cover;
+    margin: 0 auto;
+  }
+
+  .name_of_tarot {
+    padding-left: 0;
+  }
+}
