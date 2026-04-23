@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta content="initial-scale=1.0,width=device-width" name="viewport">
+
+	<title>My Drawer — Files</title>
+
+	<link href="css/reset.css" rel="stylesheet" type="text/css">
+	<link href="css/styles.css" rel="stylesheet" type="text/css">
+
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Quantico:wght@400;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+	<header>
+		<nav class="site-nav">
+			<ul class="site-nav__links">
+				<li><a href="index.html">HOME</a> ></li>
+				<li class="nav-current" id="nav-name">FILES</li>
+			</ul>
+		</nav>
+	</header>
+
+	<a class="tarot-plus" id="add-btn" href="#">ADD</a>
+
+	<script>
+	(function () {
+		var params   = new URLSearchParams(window.location.search);
+		var drawerId = params.get('id');
+
+		/* ── Validate drawer ──────────────────────────────────── */
+		var drawers = [];
+		try { drawers = JSON.parse(localStorage.getItem('user_drawers') || '[]'); } catch (e) {}
+		var drawer = null;
+		for (var i = 0; i < drawers.length; i++) {
+			if (drawers[i].id === drawerId) { drawer = drawers[i]; break; }
+		}
+		if (!drawer) { window.location.href = 'index.html'; return; }
+
+		document.title     = drawer.name + ' — Files';
+		document.getElementById('nav-name').textContent = drawer.name;
+		document.getElementById('add-btn').href = 'canvas.html?drawer=' + drawerId;
+
+		/* ── Load entries for this drawer ─────────────────────── */
+		var allEntries = [];
+		try { allEntries = JSON.parse(localStorage.getItem('tarot_entries') || '[]'); } catch (e) {}
+		var entries = allEntries.filter(function (e) { return e.drawerId === drawerId; });
+
+		/* ── Build folder elements ────────────────────────────── */
+		var folders = [];
+
+		entries.forEach(function (entry, idx) {
+			var el       = document.createElement('div');
+			var tabClass = (idx % 2 === 0) ? 'tab-right' : 'tab-left';
+			el.className = 'folder_user ' + tabClass;
+			el.setAttribute('data-href', 'entry.html?id=' + entry.id + '&drawer=' + drawerId);
+			el.style.setProperty('--user-color', entry.color);
+
+			var isReversed  = entry.orientation === 'reversed';
+			var displayName = entry.cardName + (isReversed ? ' (Reversed)' : '');
+
+			el.innerHTML =
+				'<div class="folder-body">' +
+					'<span class="folder-label">' + entry.date + '</span>' +
+					'<div class="folder-preview">' +
+						'<p>' + displayName + '</p>' +
+						'<img src="' + entry.cardImage + '" alt="' + displayName + '">' +
+					'</div>' +
+				'</div>';
+
+			document.body.appendChild(el);
+			folders.push(el);
+		});
+
+		/* ── Position & drag / tap (mirrors folder.js) ────────── */
+		var rem      = parseFloat(getComputedStyle(document.documentElement).fontSize);
+		var TAB_H    = 3 * rem;
+		var EXP_H    = 13 * rem;
+		var DRAG_MIN = 28;
+		var TAP_MAX  = 8;
+
+		function setPositions() {
+			rem   = parseFloat(getComputedStyle(document.documentElement).fontSize);
+			TAB_H = 3 * rem;
+			EXP_H = 13 * rem;
+			folders.forEach(function (f, i) {
+				f.style.bottom = ((folders.length - 1 - i) * TAB_H) + 'px';
+				f.style.zIndex = (i + 1).toString();
+			});
+		}
+
+		setPositions();
+		window.addEventListener('resize', setPositions);
+
+		folders.forEach(function (folder) {
+			var startY = 0, startH = 0, moved = false;
+
+			folder.addEventListener('mousedown',  onStart);
+			folder.addEventListener('touchstart', onStart, { passive: true });
+
+			function onStart(e) {
+				startY = getY(e);
+				startH = folder.classList.contains('folder-expanded') ? EXP_H
+				       : folder.getBoundingClientRect().height;
+				moved  = false;
+				folder.style.transition = 'clip-path 0.35s cubic-bezier(0.4,0,0.2,1)';
+				document.addEventListener('mousemove',  onMove);
+				document.addEventListener('touchmove',  onMove, { passive: false });
+				document.addEventListener('mouseup',    onEnd);
+				document.addEventListener('touchend',   onEnd);
+			}
+
+			function onMove(e) {
+				var dy = getY(e) - startY;
+				if (Math.abs(dy) > TAP_MAX) { moved = true; folder.classList.add('folder-dragging'); }
+				if (!moved) return;
+				if (e.cancelable) e.preventDefault();
+				folder.style.height = Math.max(startH, Math.min(EXP_H, startH - dy)) + 'px';
+			}
+
+			function onEnd(e) {
+				folder.classList.remove('folder-dragging');
+				folder.style.transition = '';
+				folder.style.height     = '';
+				document.removeEventListener('mousemove',  onMove);
+				document.removeEventListener('touchmove',  onMove);
+				document.removeEventListener('mouseup',    onEnd);
+				document.removeEventListener('touchend',   onEnd);
+
+				var dy = getY(e) - startY;
+				if (!moved) {
+					var href = folder.getAttribute('data-href');
+					if (href) window.location.href = href;
+					return;
+				}
+				if (dy < -DRAG_MIN) {
+					folders.forEach(function (f) { f.classList.remove('folder-expanded'); });
+					folder.classList.add('folder-expanded');
+				} else {
+					folder.classList.remove('folder-expanded');
+				}
+			}
+		});
+
+		function getY(e) {
+			if (e.touches        && e.touches.length)        return e.touches[0].clientY;
+			if (e.changedTouches && e.changedTouches.length) return e.changedTouches[0].clientY;
+			return e.clientY;
+		}
+	})();
+	</script>
+
+</body>
+</html>

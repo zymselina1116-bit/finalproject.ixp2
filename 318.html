@@ -11,7 +11,7 @@
 
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Arvo:ital,wght@0,400;0,700;1,400;1,700&family=Bigshot+One&family=Bitcount+Single:wght@100..900&family=Changa+One:ital@0;1&family=Gravitas+One&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=Quantico:wght@400;700&display=swap" rel="stylesheet">
 
 	<script src="scripts.js"></script>
 </head>
@@ -21,7 +21,7 @@
     <header>
 		<nav class="site-nav">
 			<ul class="site-nav__links">
-				<li><a href="index.html">ENTRY</a> ></li>
+				<li><a href="index.html">HOME</a> ></li>
                 <li><a href="folder.html">FILES</a> ></li>
                 <li class="nav-current">3/18</li>
 			</ul>
@@ -31,13 +31,13 @@
 	<div class="file_318">
 		<h1 class="file_date">3/18/2026</h1>
 			<div class="file_318_text">
-				<h2 class="prediction">Prediction</h2>
 				<p class="name_of_tarot">Ace of Cups (Reversed)</p>
 			</div>
 
 			<div class="tarto_section">
+				<h2 class="prediction">Prediction</h2>
 				<img src="images/318.jpg" alt="Ace of Cups (Reversed)">
-				<p class="tarot_reading_luck"><strong>Luck:</strong> The day may feel emotionally muted rather than negative. Nothing particularly flows or overflows—it's more contained and steady.</p>
+				<p class="tarot_reading_luck"><strong>Luck:</strong> The day may feel emotionally muted rather than negative. Nothing particularly flows or overflows--it's more contained and steady.</p>
 				<p class="tarot_reading_mood"><strong>Mood:</strong> Quiet, inward, slightly disconnected from strong feelings. Not unhappy, just not especially inspired or expressive.</p>
 				<p class="tarot_reading_event"><strong>Possible Event:</strong> I might go through the day in a routine way, without any strong emotional highs or lows, simply following what needs to be done.</p>
             </div>
@@ -47,10 +47,59 @@
 			</div>
 
 			<div class="diary">
-				<p class="diary_luck">Luck: The day felt neutral and steady. Nothing went wrong, but nothing stood out either.</p>
-				<p class="diary_mood">Mood: I didn't feel particularly emotional—just calm and a bit inward. It was a quiet kind of normal.</p>
-				<p class="diary_event">Event: It was a regular school day. I went to class, listened, did my assignments, ate, and went home to rest. Everything moved smoothly, just without any strong emotional presence.</p>
+				<p class="diary_luck"><strong>Luck</strong></p>
+				<div class="diary-field" id="diary-luck" data-placeholder="WRITE YOUR DIARY" data-key="luck"></div>
+				<p class="diary_mood"><strong>Mood</strong></p>
+				<div class="diary-field" id="diary-mood" data-placeholder="WRITE YOUR DIARY" data-key="mood"></div>
+				<p class="diary_event"><strong>Possible Event</strong></p>
+				<div class="diary-field" id="diary-event" data-placeholder="WRITE YOUR DIARY" data-key="event"></div>
 			</div>
 	</div>
 
+	<button id="entry-edit-btn">EDIT</button>
+
+	<script>
+	(function () {
+		var KEY = 'diary_318';
+		var DEFAULTS = {
+			luck:  "The day felt neutral and steady. Nothing went wrong, but nothing stood out either.",
+			mood:  "I didn't feel particularly emotional--just calm and a bit inward. It was a quiet kind of normal.",
+			event: "It was a regular school day. I went to class, listened, did my assignments, ate, and went home to rest. Everything moved smoothly, just without any strong emotional presence."
+		};
+		var saved = {};
+		try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) {}
+		var fields = {
+			luck:  document.getElementById('diary-luck'),
+			mood:  document.getElementById('diary-mood'),
+			event: document.getElementById('diary-event')
+		};
+		['luck', 'mood', 'event'].forEach(function (k) {
+			var text = (saved[k] !== undefined) ? saved[k] : DEFAULTS[k];
+			if (text) fields[k].textContent = text;
+		});
+		var editBtn = document.getElementById('entry-edit-btn');
+		var editing = false;
+		editBtn.addEventListener('click', function () {
+			editing = !editing;
+			['luck', 'mood', 'event'].forEach(function (k) {
+				if (editing) {
+					fields[k].setAttribute('contenteditable', 'true');
+				} else {
+					fields[k].removeAttribute('contenteditable');
+					var text = fields[k].innerText.trim();
+					saved[k] = text;
+					if (!text) fields[k].innerHTML = '';
+				}
+			});
+			if (!editing) {
+				localStorage.setItem(KEY, JSON.stringify(saved));
+			} else {
+				fields.luck.focus();
+			}
+			editBtn.textContent = editing ? 'SAVE' : 'EDIT';
+		});
+	})();
+	</script>
+
 </body>
+</html>

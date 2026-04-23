@@ -11,7 +11,7 @@
 
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Arvo:ital,wght@0,400;0,700;1,400;1,700&family=Bigshot+One&family=Bitcount+Single:wght@100..900&family=Changa+One:ital@0;1&family=Gravitas+One&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=Quantico:wght@400;700&display=swap" rel="stylesheet">
 
 	<script src="scripts.js"></script>
 </head>
@@ -21,7 +21,7 @@
     <header>
 		<nav class="site-nav">
 			<ul class="site-nav__links">
-				<li><a href="index.html">ENTRY</a> ></li>
+				<li><a href="index.html">HOME</a> ></li>
                 <li><a href="folder.html">FILES</a> ></li>
                 <li class="nav-current">3/15</li>
 			</ul>
@@ -31,14 +31,14 @@
 	<div class="file_315">
 		<h1 class="file_date">3/15/2026</h1>
 			<div class="file_315_text">
-				<h2 class="prediction">Prediction</h2>
 				<p class="name_of_tarot">The Fool (Reversed)</p>
 			</div>
 
 			<div class="tarto_section">
+				<h2 class="prediction">Prediction</h2>
 				<img src="images/315.png" alt="The Fool (Reversed)">
 				<p class="tarot_reading_luck"><strong>Luck:</strong> Things may feel uncertain, with hesitation affecting how smoothly the day unfolds. Plans could shift unexpectedly, and progress may feel slightly blocked.</p>
-				<p class="tarot_reading_mood"><strong>Mood:</strong> Tense, cautious, and a bit anxious. There’s curiosity to try something new, but also fear of making mistakes or not being ready.</p>
+				<p class="tarot_reading_mood"><strong>Mood:</strong> Tense, cautious, and a bit anxious. There's curiosity to try something new, but also fear of making mistakes or not being ready.</p>
 				<p class="tarot_reading_event"><strong>Possible Event:</strong> I might struggle to start a task or feel unsure about how to begin. Small mistakes or lack of preparation could lead to frustration, possibly causing a change of plans midway.</p>
 			</div>
 
@@ -47,10 +47,59 @@
 			</div>
 
 			<div class="diary">
-				<p class="diary_luck">Luck: The day felt slightly off, like I couldn’t fully settle into anything. Things didn’t flow as naturally as I hoped.</p>
-				<p class="diary_mood">Mood: I felt a bit tense and unsure, wanting to try but constantly second-guessing myself. There was a quiet anxiety about doing things wrong.</p>
-				<p class="diary_event"> Event: I didn’t know how to start Jenny’s assignment and kept hesitating instead of taking action. Later, when making Chinese pancakes, the dough didn’t ferment properly. It felt like a small mistake, but it added to the overall sense of being unprepared and slightly out of sync with the day.</p>
+				<p class="diary_luck"><strong>Luck</strong></p>
+				<div class="diary-field" id="diary-luck" data-placeholder="WRITE YOUR DIARY" data-key="luck"></div>
+				<p class="diary_mood"><strong>Mood</strong></p>
+				<div class="diary-field" id="diary-mood" data-placeholder="WRITE YOUR DIARY" data-key="mood"></div>
+				<p class="diary_event"><strong>Possible Event</strong></p>
+				<div class="diary-field" id="diary-event" data-placeholder="WRITE YOUR DIARY" data-key="event"></div>
 			</div>
 	</div>
 
+	<button id="entry-edit-btn">EDIT</button>
+
+	<script>
+	(function () {
+		var KEY = 'diary_315';
+		var DEFAULTS = {
+			luck:  "The day felt slightly off, like I couldn't fully settle into anything. Things didn't flow as naturally as I hoped.",
+			mood:  "I felt a bit tense and unsure, wanting to try but constantly second-guessing myself. There was a quiet anxiety about doing things wrong.",
+			event: "I didn't know how to start Jenny's assignment and kept hesitating instead of taking action. Later, when making Chinese pancakes, the dough didn't ferment properly. It felt like a small mistake, but it added to the overall sense of being unprepared and slightly out of sync with the day."
+		};
+		var saved = {};
+		try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) {}
+		var fields = {
+			luck:  document.getElementById('diary-luck'),
+			mood:  document.getElementById('diary-mood'),
+			event: document.getElementById('diary-event')
+		};
+		['luck', 'mood', 'event'].forEach(function (k) {
+			var text = (saved[k] !== undefined) ? saved[k] : DEFAULTS[k];
+			if (text) fields[k].textContent = text;
+		});
+		var editBtn = document.getElementById('entry-edit-btn');
+		var editing = false;
+		editBtn.addEventListener('click', function () {
+			editing = !editing;
+			['luck', 'mood', 'event'].forEach(function (k) {
+				if (editing) {
+					fields[k].setAttribute('contenteditable', 'true');
+				} else {
+					fields[k].removeAttribute('contenteditable');
+					var text = fields[k].innerText.trim();
+					saved[k] = text;
+					if (!text) fields[k].innerHTML = '';
+				}
+			});
+			if (!editing) {
+				localStorage.setItem(KEY, JSON.stringify(saved));
+			} else {
+				fields.luck.focus();
+			}
+			editBtn.textContent = editing ? 'SAVE' : 'EDIT';
+		});
+	})();
+	</script>
+
 </body>
+</html>

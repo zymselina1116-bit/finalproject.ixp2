@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta charset="utf-8">
+	<meta content="initial-scale=1.0,width=device-width" name="viewport">
+
+	<title>Selina's Drawer — Entry</title>
+
+	<link href="css/reset.css" rel="stylesheet" type="text/css">
+	<link href="css/styles.css" rel="stylesheet" type="text/css">
+
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Quantico:wght@400;700&display=swap" rel="stylesheet">
+</head>
+
+<body>
+
+	<header>
+		<nav class="site-nav">
+			<ul class="site-nav__links">
+				<li><a href="index.html">HOME</a> ></li>
+				<li><a href="folder.html">FILES</a> ></li>
+				<li class="nav-current" id="nav-date">ENTRY</li>
+			</ul>
+		</nav>
+	</header>
+
+	<div class="file_user" id="file-container">
+		<h1 class="file_date" id="entry-date"></h1>
+
+		<div class="file_user_text">
+			<p class="name_of_tarot" id="entry-card-name"></p>
+		</div>
+
+		<div class="tarto_section">
+			<h2 class="prediction">Prediction</h2>
+			<img id="entry-card-img" src="" alt="">
+			<p class="tarot_reading_luck" id="entry-luck"></p>
+			<p class="tarot_reading_mood" id="entry-mood"></p>
+			<p class="tarot_reading_event" id="entry-event"></p>
+		</div>
+
+		<div class="prediction_title">
+			<h2 class="prediction">Diary</h2>
+		</div>
+
+		<div class="diary">
+			<p class="diary_luck"><strong>Luck</strong></p>
+			<div class="diary-field" data-placeholder="WRITE YOUR DIARY" data-key="luck" id="diary-luck"></div>
+			<p class="diary_mood"><strong>Mood</strong></p>
+			<div class="diary-field" data-placeholder="WRITE YOUR DIARY" data-key="mood" id="diary-mood"></div>
+			<p class="diary_event"><strong>Possible Event</strong></p>
+			<div class="diary-field" data-placeholder="WRITE YOUR DIARY" data-key="event" id="diary-event"></div>
+		</div>
+	</div>
+
+	<button id="entry-edit-btn">EDIT</button>
+
+	<script>
+	(function () {
+		var params   = new URLSearchParams(window.location.search);
+		var id       = params.get('id');
+		var drawerId = params.get('drawer');
+
+		var entries = [];
+		try { entries = JSON.parse(localStorage.getItem('tarot_entries') || '[]'); } catch (e) {}
+
+		var entry = null;
+		for (var i = 0; i < entries.length; i++) {
+			if (entries[i].id === id) { entry = entries[i]; break; }
+		}
+
+		if (!entry) {
+			window.location.href = drawerId ? 'drawer-folder.html?id=' + drawerId : 'folder.html';
+			return;
+		}
+
+		/* ── Apply entry color ──────────────────────────────── */
+		document.getElementById('file-container').style.setProperty('--user-color', entry.color);
+
+		/* ── Nav breadcrumb ─────────────────────────────────── */
+		var parts = entry.date.split('/');
+		document.getElementById('nav-date').textContent = parts[0] + '/' + parts[1];
+
+		if (drawerId) {
+			// Came from a user drawer — update the FILES link to point back to that drawer
+			var _drawers = [];
+			try { _drawers = JSON.parse(localStorage.getItem('user_drawers') || '[]'); } catch(e) {}
+			for (var _i = 0; _i < _drawers.length; _i++) {
+				if (_drawers[_i].id === drawerId) {
+					var filesLink = document.querySelector('.site-nav__links li:nth-child(2) a');
+					if (filesLink) {
+						filesLink.textContent = _drawers[_i].name;
+						filesLink.href = 'drawer-folder.html?id=' + drawerId;
+					}
+					break;
+				}
+			}
+		}
+
+		/* ── Prediction section ─────────────────────────────── */
+		document.getElementById('entry-date').textContent = entry.date;
+
+		var isReversed = entry.orientation === 'reversed';
+		var displayName = entry.cardName + (isReversed ? ' (Reversed)' : '');
+		document.getElementById('entry-card-name').textContent = displayName;
+
+		var img = document.getElementById('entry-card-img');
+		img.src = entry.cardImage;
+		img.alt = displayName;
+		if (isReversed) img.style.transform = 'rotate(180deg)';
+
+		document.getElementById('entry-luck').innerHTML  = '<strong>Luck:</strong> '           + (entry.reading.luck  || '');
+		document.getElementById('entry-mood').innerHTML  = '<strong>Mood:</strong> '           + (entry.reading.mood  || '');
+		document.getElementById('entry-event').innerHTML = '<strong>Possible Event:</strong> ' + (entry.reading.event || '');
+
+		/* ── Diary fields ───────────────────────────────────── */
+		var diaryLuck  = document.getElementById('diary-luck');
+		var diaryMood  = document.getElementById('diary-mood');
+		var diaryEvent = document.getElementById('diary-event');
+
+		if (entry.diary.luck)  diaryLuck.textContent  = entry.diary.luck;
+		if (entry.diary.mood)  diaryMood.textContent  = entry.diary.mood;
+		if (entry.diary.event) diaryEvent.textContent = entry.diary.event;
+
+		/* ── EDIT / CONFIRM button ──────────────────────────── */
+		var editBtn     = document.getElementById('entry-edit-btn');
+		var diaryFields = document.querySelectorAll('.diary-field');
+		var editing     = false;
+
+		editBtn.addEventListener('click', function () {
+			editing = !editing;
+
+			diaryFields.forEach(function (field) {
+				if (editing) {
+					field.setAttribute('contenteditable', 'true');
+				} else {
+					field.removeAttribute('contenteditable');
+					var text = field.innerText.trim();
+					entry.diary[field.dataset.key] = text;
+					// Ensure truly empty so :empty placeholder shows
+					if (!text) field.innerHTML = '';
+				}
+			});
+
+			if (!editing) {
+				// Persist updated diary to localStorage
+				var all = [];
+				try { all = JSON.parse(localStorage.getItem('tarot_entries') || '[]'); } catch (e) {}
+				for (var j = 0; j < all.length; j++) {
+					if (all[j].id === entry.id) {
+						all[j].diary = entry.diary;
+						break;
+					}
+				}
+				localStorage.setItem('tarot_entries', JSON.stringify(all));
+
+				// Focus first field when entering edit mode
+			} else {
+				diaryLuck.focus();
+			}
+
+			editBtn.textContent = editing ? 'SAVE' : 'EDIT';
+		});
+	})();
+	</script>
+
+</body>
+</html>

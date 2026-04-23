@@ -4,34 +4,480 @@
 	<meta charset="utf-8">
 	<meta content="initial-scale=1.0,width=device-width" name="viewport">
 
-	<title>Your title here</title>
+	<title>Selina's Drawer</title>
 
 	<link href="css/reset.css" rel="stylesheet" type="text/css">
 	<link href="css/styles.css" rel="stylesheet" type="text/css">
 
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Arvo:ital,wght@0,400;0,700;1,400;1,700&family=Bigshot+One&family=Bitcount+Single:wght@100..900&family=Changa+One:ital@0;1&family=Gravitas+One&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=Quantico:wght@400;700&display=swap" rel="stylesheet">
 
-	<script src="scripts.js"></script>
+	<style>
+		/* Home-page overrides: canvas layout needs fixed header */
+		body { overflow: hidden; }
+		body > header {
+			position: fixed;
+			top: 0; left: 0; right: 0;
+			padding: 4rem 4.8vw 0;
+			z-index: 200;
+			pointer-events: none;
+			background: transparent;
+		}
+		body > header * { pointer-events: auto; }
+	</style>
 </head>
 
-	<body>
+<body>
 
-    <header>
+	<header>
 		<nav class="site-nav">
 			<ul class="site-nav__links">
-				<li class="nav-current">ENTRY</li>
+				<li class="nav-current">HOME</li>
 			</ul>
 		</nav>
-    </header>
+	</header>
 
-    <a href="folder.html" class="drawer">
-        <span class="drawer-btn">SELINA'S DRAWER</span>
-    </a>
+	<!-- Infinite canvas -->
+	<div id="home-wrap">
+		<div id="home-canvas"></div>
+	</div>
 
-    <a href="canvas.html" class="tarot-start">START YOUR OWN TAROT READING</a>
+	<!-- Floating tarot cards (pointer-events:none, above canvas) -->
+	<div id="float-cards"></div>
+
+	<!-- ADD DRAWER button (bottom-right) -->
+	<button id="add-drawer-btn">ADD DRAWER</button>
+
+	<!-- Drawer delete confirmation -->
+	<div id="drawer-delete-overlay">
+		<div id="drawer-delete-modal">
+			<button class="drawer-confirm-btn" id="drawer-cancel-btn">CANCEL</button>
+			<button class="drawer-confirm-btn" id="drawer-delete-btn">DELETE</button>
+		</div>
+	</div>
+
+	<!-- Drawer creation modal -->
+	<div id="drawer-modal-overlay">
+		<div id="drawer-modal">
+			<button id="modal-close" aria-label="Close">
+				<svg viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg">
+					<line x1="1" y1="1" x2="13" y2="13" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
+					<line x1="13" y1="1" x2="1" y2="13" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
+				</svg>
+			</button>
+
+			<input id="drawer-name-input" type="text" placeholder="Your drawer name">
+
+			<p class="modal-section-label">Select your drawer</p>
+
+			<div id="drawer-options">
+				<div class="drawer-option" data-style="light">
+					<div class="drawer-opt-preview style-light">
+						<span class="drawer-opt-label">MY DRAWER</span>
+					</div>
+				</div>
+				<div class="drawer-option" data-style="metal">
+					<div class="drawer-opt-preview style-metal">
+						<span class="drawer-opt-label">MY DRAWER</span>
+					</div>
+				</div>
+				<div class="drawer-option" data-style="wood">
+					<div class="drawer-opt-preview style-wood">
+						<span class="drawer-opt-label">MY DRAWER</span>
+					</div>
+				</div>
+			</div>
+
+			<button id="drawer-create-btn">Create</button>
+		</div>
+	</div>
+
+	<script>
+	(function () {
+		/* ── Constants ─────────────────────────────────────────── */
+		var DRAWER_W  = 39.25;   // rem
+		var DRAWER_H  = 10.8125; // rem
+		var COL_GAP   = 6;       // rem between columns
+		var ROW_GAP   = 5;       // rem between rows
+		var MIN_SCALE = 0.42;    // most zoomed out  (~10 drawers visible)
+		var MAX_SCALE = 0.95;    // most zoomed in   (~4 drawers visible)
+		var CLICK_TH  = 6;       // px threshold: click vs drag
+
+		// Stagger offsets (rem) per drawer index — keeps layout lively but non-overlapping
+		// Max |x| = 2rem (gap 6rem → 4rem buffer), max |y| = 2rem (gap 5rem → 3rem buffer)
+		var STAGGER = [
+			[  0,     0    ],  // 0 — Selina's: no offset
+			[  1.5,  -1.5  ],  // 1
+			[ -1,     1    ],  // 2
+			[  2,    -0.5  ],  // 3
+			[ -1.5,   1.5  ],  // 4
+			[  0.5,  -2    ],  // 5
+			[ -2,     0.75 ],  // 6
+			[  1,     2    ],  // 7
+			[ -0.5,  -1    ],  // 8
+			[  2,     1    ],  // 9
+		];
+
+		var homeWrap   = document.getElementById('home-wrap');
+		var homeCanvas = document.getElementById('home-canvas');
+
+		var tx = 0, ty = 0, scale = 0.75;
+		var isPanning = false, dragMoved = false;
+		var panStartX = 0, panStartY = 0, panTx = 0, panTy = 0;
+
+		function applyTransform() {
+			homeCanvas.style.transform =
+				'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')';
+		}
+
+		/* ── Build a drawer element ─────────────────────────────── */
+		function makeDrawer(name, style, href, index) {
+			var col = index % 2;
+			var row = Math.floor(index / 2);
+			var sg  = STAGGER[index % STAGGER.length];
+
+			var el = document.createElement('div');
+			el.className = 'canvas-drawer style-' + style;
+			el.style.left = (col * (DRAWER_W + COL_GAP) + sg[0]) + 'rem';
+			el.style.top  = (row * (DRAWER_H + ROW_GAP) + sg[1]) + 'rem';
+			if (href) el.dataset.href = href;
+
+			var lbl = document.createElement('span');
+			lbl.className   = 'canvas-drawer-label';
+			lbl.textContent = name.toUpperCase();
+			el.appendChild(lbl);
+
+			return el;
+		}
+
+		/* ── Render all drawers ─────────────────────────────────── */
+		var userDrawers = [];
+		try { userDrawers = JSON.parse(localStorage.getItem('user_drawers') || '[]'); } catch (e) {}
+		// Migrate old style name "dark" → "metal"
+		userDrawers.forEach(function (d) { if (d.style === 'dark') d.style = 'metal'; });
+		localStorage.setItem('user_drawers', JSON.stringify(userDrawers));
+
+		function renderAll() {
+			homeCanvas.innerHTML = '';
+			homeCanvas.appendChild(makeDrawer("SELINA'S DRAWER", 'light', 'folder.html', 0));
+			userDrawers.forEach(function (d, i) {
+				homeCanvas.appendChild(makeDrawer(d.name || 'MY DRAWER', d.style, 'drawer-folder.html?id=' + d.id, i + 1));
+			});
+		}
+
+		/* ── Center grid in viewport ────────────────────────────── */
+		function centerGrid() {
+			var rem   = parseFloat(getComputedStyle(document.documentElement).fontSize);
+			var total = 1 + userDrawers.length;
+			var cols  = Math.min(total, 2);
+			var rows  = Math.ceil(total / 2);
+			var gw    = (cols * DRAWER_W + (cols - 1) * COL_GAP) * rem;
+			var gh    = (rows * DRAWER_H + (rows - 1) * ROW_GAP) * rem;
+			tx = (window.innerWidth  - gw * scale) / 2;
+			ty = (window.innerHeight - gh * scale) / 2;
+			applyTransform();
+		}
+
+		/* ── Pan to a specific drawer (by index) ────────────────── */
+		function panToDrawer(index) {
+			var rem = parseFloat(getComputedStyle(document.documentElement).fontSize);
+			var col = index % 2;
+			var row = Math.floor(index / 2);
+			var cx  = (col * (DRAWER_W + COL_GAP) + DRAWER_W / 2) * rem;
+			var cy  = (row * (DRAWER_H + ROW_GAP) + DRAWER_H / 2) * rem;
+			tx = window.innerWidth  / 2 - cx * scale;
+			ty = window.innerHeight / 2 - cy * scale;
+			applyTransform();
+		}
+
+		renderAll();
+		centerGrid();
+		window.addEventListener('resize', centerGrid);
+
+		/* ── Mouse pan ──────────────────────────────────────────── */
+		homeWrap.addEventListener('mousedown', function (e) {
+			isPanning = true;
+			dragMoved = false;
+			panStartX = e.clientX;
+			panStartY = e.clientY;
+			panTx = tx; panTy = ty;
+			homeWrap.classList.add('panning');
+		});
+
+		document.addEventListener('mousemove', function (e) {
+			if (!isPanning) return;
+			var dx = e.clientX - panStartX;
+			var dy = e.clientY - panStartY;
+			if (Math.sqrt(dx * dx + dy * dy) > CLICK_TH) dragMoved = true;
+			tx = panTx + dx;
+			ty = panTy + dy;
+			applyTransform();
+		});
+
+		document.addEventListener('mouseup', function () {
+			isPanning = false;
+			homeWrap.classList.remove('panning');
+		});
+
+		/* ── Click → navigate drawer ────────────────────────────── */
+		homeCanvas.addEventListener('click', function (e) {
+			if (dragMoved) return;
+			var el = e.target.closest('.canvas-drawer');
+			if (el && el.dataset.href) window.location.href = el.dataset.href;
+		});
+
+		/* ── Wheel zoom ─────────────────────────────────────────── */
+		homeWrap.addEventListener('wheel', function (e) {
+			e.preventDefault();
+			var factor   = e.deltaY < 0 ? 1.1 : 0.9;
+			var newScale = Math.min(MAX_SCALE, Math.max(MIN_SCALE, scale * factor));
+			tx = e.clientX - (e.clientX - tx) * (newScale / scale);
+			ty = e.clientY - (e.clientY - ty) * (newScale / scale);
+			scale = newScale;
+			applyTransform();
+		}, { passive: false });
+
+		/* ── Touch pan + pinch zoom ─────────────────────────────── */
+		var t0x = 0, t0y = 0, tPanTx = 0, tPanTy = 0;
+		var tDist0 = 0, tScale0 = 1, tMx = 0, tMy = 0, tMTx = 0, tMTy = 0;
+		var touchMoved = false;
+
+		homeWrap.addEventListener('touchstart', function (e) {
+			touchMoved = false;
+			if (e.touches.length === 1) {
+				t0x = e.touches[0].clientX;
+				t0y = e.touches[0].clientY;
+				tPanTx = tx; tPanTy = ty;
+			} else if (e.touches.length === 2) {
+				var dx = e.touches[1].clientX - e.touches[0].clientX;
+				var dy = e.touches[1].clientY - e.touches[0].clientY;
+				tDist0  = Math.sqrt(dx * dx + dy * dy);
+				tScale0 = scale;
+				tMx = (e.touches[0].clientX + e.touches[1].clientX) / 2;
+				tMy = (e.touches[0].clientY + e.touches[1].clientY) / 2;
+				tMTx = tx; tMTy = ty;
+			}
+		}, { passive: true });
+
+		homeWrap.addEventListener('touchmove', function (e) {
+			e.preventDefault();
+			touchMoved = true;
+			if (e.touches.length === 1) {
+				tx = tPanTx + (e.touches[0].clientX - t0x);
+				ty = tPanTy + (e.touches[0].clientY - t0y);
+			} else if (e.touches.length === 2) {
+				var dx = e.touches[1].clientX - e.touches[0].clientX;
+				var dy = e.touches[1].clientY - e.touches[0].clientY;
+				var ns = Math.min(MAX_SCALE, Math.max(MIN_SCALE, tScale0 * Math.sqrt(dx*dx+dy*dy) / tDist0));
+				tx = tMx - (tMx - tMTx) * (ns / tScale0);
+				ty = tMy - (tMy - tMTy) * (ns / tScale0);
+				scale = ns;
+			}
+			applyTransform();
+		}, { passive: false });
+
+		homeWrap.addEventListener('touchend', function (e) {
+			if (!touchMoved && e.changedTouches.length) {
+				var pt = e.changedTouches[0];
+				var hit = document.elementFromPoint(pt.clientX, pt.clientY);
+				var el  = hit && hit.closest('.canvas-drawer');
+				if (el && el.dataset.href) window.location.href = el.dataset.href;
+			}
+		});
+
+		/* ── Right-click → delete drawer ───────────────────────── */
+		var deleteOverlay  = document.getElementById('drawer-delete-overlay');
+		var deleteCancelBtn = document.getElementById('drawer-cancel-btn');
+		var deleteConfirmBtn = document.getElementById('drawer-delete-btn');
+		var pendingDeleteId = null;
+
+		homeWrap.addEventListener('contextmenu', function (e) {
+			e.preventDefault();
+			var el = e.target.closest('.canvas-drawer');
+			if (!el) return;
+			var href = el.dataset.href || '';
+			// Only user drawers have drawer-folder URLs
+			var m = href.match(/[?&]id=([^&]+)/);
+			if (!m) return;
+			pendingDeleteId = m[1];
+			deleteOverlay.style.display = 'flex';
+		});
+
+		deleteCancelBtn.addEventListener('click', function () {
+			deleteOverlay.style.display = 'none';
+			pendingDeleteId = null;
+		});
+
+		deleteConfirmBtn.addEventListener('click', function () {
+			if (!pendingDeleteId) return;
+			userDrawers = userDrawers.filter(function (d) { return d.id !== pendingDeleteId; });
+			localStorage.setItem('user_drawers', JSON.stringify(userDrawers));
+			deleteOverlay.style.display = 'none';
+			pendingDeleteId = null;
+			renderAll();
+			centerGrid();
+		});
+
+		/* ── Modal ──────────────────────────────────────────────── */
+		var overlay  = document.getElementById('drawer-modal-overlay');
+		var addBtn   = document.getElementById('add-drawer-btn');
+		var closeBtn = document.getElementById('modal-close');
+		var nameIn   = document.getElementById('drawer-name-input');
+		var opts     = document.querySelectorAll('.drawer-option');
+		var createBtn = document.getElementById('drawer-create-btn');
+		var selStyle = null;
+
+		addBtn.addEventListener('click', function () {
+			nameIn.value = '';
+			opts.forEach(function (o) { o.classList.remove('selected'); });
+			selStyle = null;
+			overlay.style.display = 'flex';
+		});
+
+		closeBtn.addEventListener('click', function () {
+			overlay.style.display = 'none';
+		});
+
+		overlay.addEventListener('click', function (e) {
+			if (e.target === overlay) overlay.style.display = 'none';
+		});
+
+		opts.forEach(function (opt) {
+			opt.addEventListener('click', function () {
+				opts.forEach(function (o) { o.classList.remove('selected'); });
+				opt.classList.add('selected');
+				selStyle = opt.dataset.style;
+			});
+		});
+
+		createBtn.addEventListener('click', function () {
+			var style = selStyle || 'light';
+
+			var name = nameIn.value.trim() || 'MY DRAWER';
+
+			var newIdx = 1 + userDrawers.length;
+
+			userDrawers.push({ id: Date.now().toString(), name: name, style: style });
+			localStorage.setItem('user_drawers', JSON.stringify(userDrawers));
+
+			overlay.style.display = 'none';
+			renderAll();
+			panToDrawer(newIdx);
+		});
+	})();
+
+	/* ── Floating tarot cards ─────────────────────────────────── */
+	(function () {
+		var container = document.getElementById('float-cards');
+		var IMG       = 'images/tarot%20card/tarot%20back.png';
+
+		// Physics constants
+		var REPEL_R = 170;   // px — repulsion radius around cursor
+		var REPEL_F = 2.5;   // base repulsion force
+		var DRIFT   = 0.03;  // gentle sinusoidal drift strength
+		var DAMP    = 0.94;  // velocity damping per frame (lower = more friction)
+		var ANG_DAMP = 0.97; // angular velocity damping
+
+		// Mouse tracking
+		var mouseX = window.innerWidth  / 2;
+		var mouseY = window.innerHeight / 2;
+		var mDX = 0, mDY = 0;
+
+		document.addEventListener('mousemove', function (e) {
+			mDX    = e.clientX - mouseX;
+			mDY    = e.clientY - mouseY;
+			mouseX = e.clientX;
+			mouseY = e.clientY;
+		});
+
+		// Card widths (px) — varied sizes; height = width × 1.75
+		var WIDTHS = [52, 68, 84, 58, 92, 74, 48, 80, 63, 96, 70, 56, 88, 60];
+
+		var cards = WIDTHS.map(function (w) {
+			// Spread initial positions around the viewport (not at center)
+			var angle  = Math.random() * Math.PI * 2;
+			var spread = 180 + Math.random() * Math.max(window.innerWidth, window.innerHeight) * 0.38;
+			return {
+				x:      window.innerWidth  / 2 + Math.cos(angle) * spread,
+				y:      window.innerHeight / 2 + Math.sin(angle) * spread,
+				vx:     (Math.random() - 0.5) * 1.8,
+				vy:     (Math.random() - 0.5) * 1.8,
+				rot:    (Math.random() - 0.5) * 70,
+				angVel: (Math.random() - 0.5) * 0.35,
+				phase:  Math.random() * Math.PI * 2,
+				w: w, h: Math.round(w * 1.75),
+				el: null
+			};
+		});
+
+		cards.forEach(function (c) {
+			var el  = document.createElement('div');
+			el.className = 'float-card';
+			el.style.width  = c.w + 'px';
+			el.style.height = c.h + 'px';
+			var img = document.createElement('img');
+			img.src = IMG;
+			img.alt = '';
+			img.draggable = false;
+			el.appendChild(img);
+			container.appendChild(el);
+			c.el = el;
+		});
+
+		function tick() {
+			var mSpeed = Math.sqrt(mDX * mDX + mDY * mDY);
+			var vw = window.innerWidth, vh = window.innerHeight;
+			var cx = vw / 2,           cy = vh / 2;
+
+			cards.forEach(function (c) {
+				// Sinusoidal ambient drift
+				c.phase += 0.007;
+				c.vx += Math.sin(c.phase)        * DRIFT;
+				c.vy += Math.cos(c.phase * 0.73) * DRIFT;
+
+				// Mouse repulsion — stronger when mouse moves fast
+				var dx   = c.x - mouseX;
+				var dy   = c.y - mouseY;
+				var dist = Math.sqrt(dx * dx + dy * dy) || 1;
+				if (dist < REPEL_R) {
+					var f = REPEL_F * (1 - dist / REPEL_R) * (1 + mSpeed * 0.08);
+					c.vx += (dx / dist) * f;
+					c.vy += (dy / dist) * f;
+					c.angVel += (dx / dist) * f * 0.06;
+				}
+
+				// Damping
+				c.vx     *= DAMP;
+				c.vy     *= DAMP;
+				c.angVel *= ANG_DAMP;
+
+				c.rot += c.angVel;
+				c.x   += c.vx;
+				c.y   += c.vy;
+
+				// Very gentle pull back when far off-screen (cards drift back slowly)
+				if (c.x < -400 || c.x > vw + 400 || c.y < -400 || c.y > vh + 400) {
+					c.vx += (cx - c.x) * 0.00045;
+					c.vy += (cy - c.y) * 0.00045;
+				}
+
+				c.el.style.transform =
+					'translate(' + (c.x - c.w / 2).toFixed(1) + 'px,' +
+					               (c.y - c.h / 2).toFixed(1) + 'px) ' +
+					'rotate(' + c.rot.toFixed(2) + 'deg)';
+			});
+
+			// Decay mouse delta between frames
+			mDX *= 0.75;
+			mDY *= 0.75;
+
+			requestAnimationFrame(tick);
+		}
+
+		requestAnimationFrame(tick);
+	})();
+	</script>
 
 </body>
-
-    	
+</html>

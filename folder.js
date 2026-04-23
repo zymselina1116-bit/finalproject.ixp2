@@ -5,36 +5,78 @@ document.addEventListener('DOMContentLoaded', function () {
   var DRAG_MIN   = 28;           // px upward drag to commit expand
   var TAP_MAX    = 8;            // px — less than this = tap (navigate)
 
-  var selectors = [
+  /* ── Static folders ─────────────────────────────────────────── */
+  var staticSelectors = [
     '.folder_1','.folder_2','.folder_3',
     '.folder_4','.folder_5','.folder_6',
     '.folder_7','.folder_8','.folder_9'
   ];
-  var folders = selectors.map(function (s) {
+  var staticFolders = staticSelectors.map(function (s) {
     return document.querySelector(s);
   }).filter(Boolean);
 
-  // ── Set initial bottom positions ─────────────────────────────
-  // folder_9 (i=8) → bottom = 0 (sits on screen bottom)
-  // folder_1 (i=0) → bottom = 8 × TAB_H (highest)
+  /* ── User folders from localStorage ─────────────────────────── */
+  var allEntries = [];
+  try {
+    allEntries = JSON.parse(localStorage.getItem('tarot_entries') || '[]');
+  } catch (e) {}
+  // Only show entries that belong to Selina's drawer (no drawerId)
+  var entries = allEntries.filter(function (e) { return !e.drawerId; });
+
+  var userFolders = entries.map(function (entry, idx) {
+    var el = document.createElement('div');
+
+    // Absolute index in the combined stack (static count + user index)
+    var absIdx = staticFolders.length + idx;
+    // Odd absolute index → right tab (matches static pattern: folder_1=idx0→tab-right)
+    var tabClass = (absIdx % 2 === 0) ? 'tab-right' : 'tab-left';
+
+    el.className = 'folder_user ' + tabClass;
+    el.setAttribute('data-href', 'entry.html?id=' + entry.id);
+    el.style.setProperty('--user-color', entry.color);
+
+    var isReversed = entry.orientation === 'reversed';
+    var displayName = entry.cardName + (isReversed ? ' (Reversed)' : '');
+
+    el.innerHTML =
+      '<div class="folder-body">' +
+        '<span class="folder-label">' + entry.date + '</span>' +
+        '<div class="folder-preview">' +
+          '<p>' + displayName + '</p>' +
+          '<img src="' + entry.cardImage + '" alt="' + displayName + '">' +
+        '</div>' +
+      '</div>';
+
+    document.body.appendChild(el);
+    return el;
+  });
+
+  /* ── Combined stack: static first (top), user last (bottom) ──── */
+  var allFolders = staticFolders.concat(userFolders);
+
+  /* ── Position all folders and the + button ───────────────────── */
   function setInitialPositions() {
     rem   = parseFloat(getComputedStyle(document.documentElement).fontSize);
     TAB_H = 3 * rem;
     EXP_H = 13  * rem;
-    folders.forEach(function (folder, i) {
-      var b = (folders.length - 1 - i) * TAB_H;
-      folder.style.bottom = b + 'px';
+
+    // i=0 → topmost (highest bottom value), i=last → bottommost (bottom=0)
+    allFolders.forEach(function (folder, i) {
+      var b = (allFolders.length - 1 - i) * TAB_H;
+      folder.style.bottom  = b + 'px';
+      folder.style.zIndex  = (i + 1).toString();
     });
+
   }
 
   setInitialPositions();
   window.addEventListener('resize', setInitialPositions);
 
-  // ── Drag & tap per folder ────────────────────────────────────
-  folders.forEach(function (folder) {
-    var startY     = 0;
-    var startH     = 0;
-    var moved      = false;
+  /* ── Drag & tap logic (same for all folders) ─────────────────── */
+  allFolders.forEach(function (folder) {
+    var startY = 0;
+    var startH = 0;
+    var moved  = false;
 
     folder.addEventListener('mousedown',  onStart);
     folder.addEventListener('touchstart', onStart, { passive: true });
@@ -45,7 +87,6 @@ document.addEventListener('DOMContentLoaded', function () {
              : folder.getBoundingClientRect().height;
       moved  = false;
 
-      // disable height transition for live drag feel; clip-path still transitions
       folder.style.transition = 'clip-path 0.35s cubic-bezier(0.4,0,0.2,1)';
 
       document.addEventListener('mousemove',  onMove);
@@ -55,10 +96,9 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function onMove(e) {
-      var dy = getY(e) - startY;  // negative = dragging up
+      var dy = getY(e) - startY;
       if (Math.abs(dy) > TAP_MAX) {
         moved = true;
-        // show preview + straight sides as soon as drag starts
         folder.classList.add('folder-dragging');
       }
       if (!moved) return;
@@ -70,7 +110,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function onEnd(e) {
       folder.classList.remove('folder-dragging');
-      // re-enable full transition for snap
       folder.style.transition = '';
       folder.style.height     = '';
 
@@ -82,15 +121,13 @@ document.addEventListener('DOMContentLoaded', function () {
       var dy = getY(e) - startY;
 
       if (!moved) {
-        // Tap → navigate
         var href = folder.getAttribute('data-href');
         if (href) window.location.href = href;
         return;
       }
 
       if (dy < -DRAG_MIN) {
-        // Collapse all others, expand this one (keep natural z-index)
-        folders.forEach(function (f) { f.classList.remove('folder-expanded'); });
+        allFolders.forEach(function (f) { f.classList.remove('folder-expanded'); });
         folder.classList.add('folder-expanded');
       } else {
         folder.classList.remove('folder-expanded');

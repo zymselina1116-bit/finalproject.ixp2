@@ -34,7 +34,7 @@
       top: 0;
       left: 0;
       right: 0;
-      padding: 1.5rem 4.8vw 0;
+      padding: 4rem 4.8vw 0;
       z-index: 100;
       pointer-events: none;
     }
@@ -228,8 +228,7 @@
       height: 33rem;
       background: #FFF;
       box-shadow: 0 4px 4px 2px rgba(0, 0, 0, 0.25);
-      display: flex;
-      flex-direction: row;
+      overflow: hidden;
     }
 
     #reading-close {
@@ -242,7 +241,7 @@
       background: none;
       border: none;
       padding: 0;
-      z-index: 1;
+      z-index: 10;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -254,96 +253,133 @@
       display: block;
     }
 
-    /* Left half — card image */
-    #reading-left {
-      width: 50%;
+    /* Body — flex column: scroll area grows, button pinned to bottom */
+    #reading-body {
+      height: 100%;
       display: flex;
-      align-items: center;
-      justify-content: center;
-      padding: 2.75rem 1.75rem 2.75rem 3rem;
-      box-sizing: border-box;
+      flex-direction: column;
+      font-family: "Quantico", sans-serif;
+      overflow: hidden;
     }
 
-    #reading-left img {
+    /* Scroll area — content stacks here, centered when small */
+    #reading-scroll {
+      flex: 1;
+      min-height: 0;
+      overflow-y: scroll;
+      scrollbar-width: none;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: safe center;
+      gap: 3rem;
+      padding: 2.75rem 3.5rem 1rem;
+    }
+
+    #reading-scroll::-webkit-scrollbar { display: none; }
+
+    /* Revealed: restore normal scrollbar so user can scroll freely */
+    #reading-scroll.revealed {
+      overflow-y: auto;
+      scrollbar-width: thin;
+    }
+
+    #reading-scroll.revealed::-webkit-scrollbar {
       display: block;
-      height: calc(33rem - 9rem);
+      width: 4px;
+    }
+
+    /* Card image */
+    #reading-card-wrap { flex-shrink: 0; }
+
+    #reading-card-img {
+      display: block;
+      height: 18rem;
       width: auto;
-      max-width: 100%;
-      object-fit: contain;
       border-radius: 6px;
       box-shadow: 0 4px 16px rgba(0, 0, 0, 0.22);
     }
 
-    #reading-left img.reading-reversed {
-      transform: rotate(180deg);
-    }
+    #reading-card-img.reading-reversed { transform: rotate(180deg); }
 
-    /* Right half — text */
-    #reading-right {
-      width: 50%;
-      padding: 2.75rem 3rem 2.75rem 1.75rem;
-      box-sizing: border-box;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      font-family: "Quantico", sans-serif;
-    }
-
+    /* Card name — centered */
     #reading-card-name {
+      display: none;
       font-size: 1rem;
       font-weight: 700;
       line-height: normal;
-      margin: 0 0 1.25rem 0;
+      margin: 0;
+      text-align: center;
+      flex-shrink: 0;
     }
 
+    /* Reading lines — centered */
     .reading-line {
+      display: none;
       font-size: 1rem;
       font-weight: 400;
       line-height: 1.6;
-      margin: 0 0 0.85rem 0;
+      margin: 0;
+      text-align: center;
+      flex-shrink: 0;
     }
 
-    .reading-line:last-child { margin-bottom: 0; }
+    /* Button — pinned to bottom of panel, never inside scroll */
+    #reading-btn-wrap {
+      flex-shrink: 0;
+      display: flex;
+      justify-content: center;
+      padding: 1.1rem 0 1.75rem;
+    }
 
-    /* ── Mobile — stacked ────────────────────────────────────── */
+    #reading-btn {
+      border: 1.5px solid #000;
+      background: #fff;
+      padding: 0.4rem 1.5rem;
+      font-family: "Quantico", sans-serif;
+      font-size: 0.75rem;
+      font-weight: 400;
+      line-height: normal;
+      cursor: pointer;
+      display: block;
+    }
+
+    #reading-btn:hover { background: #f0f0f0; }
+
+    /* ADD button — visible only in state 4 */
+    #reading-add-wrap {
+      display: none;
+      flex-shrink: 0;
+      justify-content: center;
+      padding: 1.1rem 0 1.75rem;
+    }
+
+    #reading-add-btn {
+      border: 1.5px solid #000;
+      background: #fff;
+      padding: 0.4rem 1.5rem;
+      font-family: "Quantico", sans-serif;
+      font-size: 0.75rem;
+      font-weight: 400;
+      line-height: normal;
+      cursor: pointer;
+      display: block;
+    }
+
+    #reading-add-btn:hover { background: #f0f0f0; }
+
+    /* ── Mobile ──────────────────────────────────────────────── */
     @media (max-width: 640px) {
       #reading-panel {
-        flex-direction: column;
-        height: auto;
-        max-height: calc(100svh - 2rem);
-        overflow-y: auto;
         width: calc(100vw - 2rem);
+        height: calc(100svh - 2rem);
       }
 
-      #reading-left {
-        width: 100%;
-        padding: 3rem 2.5rem 1.5rem;
-        justify-content: center;
+      #reading-scroll {
+        padding: 2.75rem 2rem 1rem;
       }
 
-      #reading-left img {
-        height: auto;
-        max-height: 16rem;
-        width: auto;
-      }
-
-      #reading-right {
-        width: 100%;
-        padding: 1.5rem 2.5rem 2.5rem;
-        justify-content: flex-start;
-      }
-    }
-
-    /* ── Tablet — shrink height gracefully ───────────────────── */
-    @media (max-width: 900px) and (min-width: 641px) {
-      #reading-panel {
-        height: auto;
-        min-height: 24rem;
-      }
-
-      #reading-left img {
-        height: calc(24rem - 5.5rem);
-      }
+      #reading-card-img { height: 14rem; }
     }
   </style>
 </head>
@@ -352,8 +388,9 @@
 
   <header>
     <nav class="site-nav">
-      <ul class="site-nav__links">
-        <li><a href="index.html">ENTRY</a> ></li>
+      <ul class="site-nav__links" id="canvas-nav">
+        <li><a href="index.html">HOME</a> ></li>
+        <li><a href="folder.html" id="nav-back">FILES</a> ></li>
         <li class="nav-current">YOUR READING</li>
       </ul>
     </nav>
@@ -366,7 +403,7 @@
         <line x1="13" y1="1" x2="1" y2="13" stroke="#000" stroke-width="1.5" stroke-linecap="round"/>
       </svg>
     </button>
-    <p>Drag around to pick a tarot card</p>
+    <p>Drag around and pick a tarot card</p>
   </div>
 
   <div id="canvas-wrap">
@@ -382,21 +419,45 @@
         </svg>
       </button>
 
-      <div id="reading-left">
-        <img id="reading-card-img" src="" alt="">
-      </div>
-
-      <div id="reading-right">
-        <p id="reading-card-name"></p>
-        <p class="reading-line" id="reading-luck"></p>
-        <p class="reading-line" id="reading-mood"></p>
-        <p class="reading-line" id="reading-event"></p>
+      <div id="reading-body">
+        <div id="reading-scroll">
+          <div id="reading-card-wrap">
+            <img id="reading-card-img" src="" alt="">
+          </div>
+          <p id="reading-card-name"></p>
+          <p class="reading-line" id="reading-luck"></p>
+          <p class="reading-line" id="reading-mood"></p>
+          <p class="reading-line" id="reading-event"></p>
+        </div>
+        <div id="reading-btn-wrap">
+          <button id="reading-btn">VIEW MORE</button>
+        </div>
+        <div id="reading-add-wrap">
+          <button id="reading-add-btn">ADD</button>
+        </div>
       </div>
     </div>
   </div>
 
   <script>
     (function () {
+      /* ── Drawer context (if opened from a user drawer) ─────── */
+      var _urlParams = new URLSearchParams(window.location.search);
+      var _drawerId  = _urlParams.get('drawer');
+      if (_drawerId) {
+        var _drawers = [];
+        try { _drawers = JSON.parse(localStorage.getItem('user_drawers') || '[]'); } catch(e) {}
+        var _drawer = null;
+        for (var _i = 0; _i < _drawers.length; _i++) {
+          if (_drawers[_i].id === _drawerId) { _drawer = _drawers[_i]; break; }
+        }
+        if (_drawer) {
+          var _navBack = document.getElementById('nav-back');
+          _navBack.textContent = _drawer.name;
+          _navBack.href = 'drawer-folder.html?id=' + _drawerId;
+        }
+      }
+
       var CARD_W  = 220;
       var CARD_H  = 385;
       var IMG_SRC = 'images/tarot%20card/tarot%20back.png';
@@ -519,21 +580,70 @@
       var luckEl    = document.getElementById('reading-luck');
       var moodEl    = document.getElementById('reading-mood');
       var eventEl   = document.getElementById('reading-event');
+      var btnWrap   = document.getElementById('reading-btn-wrap');
+      var btn       = document.getElementById('reading-btn');
+      var scrollEl  = document.getElementById('reading-scroll');
+      var addWrap   = document.getElementById('reading-add-wrap');
+      var addBtn    = document.getElementById('reading-add-btn');
+
+      var readingState    = 0;
+      var currentEntryData = null; // set when a reading is opened
+
+      function updateReadingDisplay() {
+        cardName.style.display = readingState >= 1 ? 'block' : 'none';
+        luckEl.style.display   = readingState >= 2 ? 'block' : 'none';
+        moodEl.style.display   = readingState >= 3 ? 'block' : 'none';
+        eventEl.style.display  = readingState >= 4 ? 'block' : 'none';
+
+        if (readingState < 4) {
+          btn.textContent = readingState === 0 ? 'VIEW MORE' : 'MORE';
+          btnWrap.style.display = 'flex';
+          addWrap.style.display = 'none';
+          scrollEl.classList.remove('revealed');
+
+          // After state 0, smooth-scroll to bottom so new content is visible
+          if (readingState > 0) {
+            setTimeout(function () {
+              scrollEl.scrollTo({ top: scrollEl.scrollHeight, behavior: 'smooth' });
+            }, 30);
+          } else {
+            scrollEl.scrollTop = 0;
+          }
+        } else {
+          // All revealed — hide VIEW MORE, show ADD, restore scrollbar, scroll to top
+          btnWrap.style.display = 'none';
+          addWrap.style.display = 'flex';
+          scrollEl.classList.add('revealed');
+          setTimeout(function () {
+            scrollEl.scrollTo({ top: 0, behavior: 'smooth' });
+          }, 30);
+        }
+      }
+
+      btn.addEventListener('click', function () {
+        if (readingState < 4) {
+          readingState++;
+          updateReadingDisplay();
+        }
+      });
 
       function openReading(card) {
-        var id      = card.dataset.cardId;
-        var orient  = card.dataset.orientation;
-        var data    = null;
+        var id     = card.dataset.cardId;
+        var orient = card.dataset.orientation;
+        var data   = null;
         for (var i = 0; i < TAROT_DATA.length; i++) {
           if (TAROT_DATA[i].id === id) { data = TAROT_DATA[i]; break; }
         }
         if (!data) return;
 
+        // Store for ADD button
+        currentEntryData = { id: id, orient: orient, data: data };
+
         var reading    = data[orient];
         var isReversed = orient === 'reversed';
 
-        cardImg.src = data.image;
-        cardImg.alt = data.name + (isReversed ? ' (Reversed)' : '');
+        cardImg.src       = data.image;
+        cardImg.alt       = data.name + (isReversed ? ' (Reversed)' : '');
         cardImg.className = isReversed ? 'reading-reversed' : '';
 
         cardName.textContent = data.name + (isReversed ? ' (Reversed)' : '');
@@ -541,11 +651,52 @@
         moodEl.innerHTML  = '<strong>Mood:</strong> '           + (reading.mood  || '—');
         eventEl.innerHTML = '<strong>Possible Event:</strong> ' + (reading.event || '—');
 
+        // Reset to state 0 each time a reading opens
+        readingState = 0;
+        updateReadingDisplay();
+
         overlay.style.display = 'flex';
       }
 
       document.getElementById('reading-close').addEventListener('click', function () {
         overlay.style.display = 'none';
+      });
+
+      addBtn.addEventListener('click', function () {
+        if (!currentEntryData) return;
+
+        var id      = currentEntryData.id;
+        var orient  = currentEntryData.orient;
+        var data    = currentEntryData.data;
+        var reading = data[orient];
+
+        var now     = new Date();
+        var entryId = Date.now().toString();
+        var dateStr = (now.getMonth() + 1) + '/' + now.getDate() + '/' + now.getFullYear();
+
+        var palette = ['#d9d6cf', '#ece3b2', '#cbc8c0', '#dbd8cd', '#cac7bf'];
+        var color   = palette[Math.floor(Math.random() * palette.length)];
+
+        var entry = {
+          id:          entryId,
+          date:        dateStr,
+          cardId:      id,
+          cardName:    data.name,
+          orientation: orient,
+          cardImage:   data.image,
+          reading:     { luck: reading.luck, mood: reading.mood, event: reading.event },
+          diary:       { luck: '', mood: '', event: '' },
+          color:       color,
+          drawerId:    _drawerId || null
+        };
+
+        var existing = JSON.parse(localStorage.getItem('tarot_entries') || '[]');
+        existing.push(entry);
+        localStorage.setItem('tarot_entries', JSON.stringify(existing));
+
+        var redirect = 'entry.html?id=' + entryId;
+        if (_drawerId) redirect += '&drawer=' + _drawerId;
+        window.location.href = redirect;
       });
 
       /* ── Pan / zoom state ──────────────────────────────────── */

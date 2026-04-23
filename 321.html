@@ -11,7 +11,7 @@
 
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-	<link href="https://fonts.googleapis.com/css2?family=Arvo:ital,wght@0,400;0,700;1,400;1,700&family=Bigshot+One&family=Bitcount+Single:wght@100..900&family=Changa+One:ital@0;1&family=Gravitas+One&family=PT+Sans:ital,wght@0,400;0,700;1,400;1,700&family=Space+Grotesk:wght@300..700&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/css2?family=Quantico:wght@400;700&display=swap" rel="stylesheet">
 
 	<script src="scripts.js"></script>
 </head>
@@ -21,7 +21,7 @@
     <header>
 		<nav class="site-nav">
 			<ul class="site-nav__links">
-				<li><a href="index.html">ENTRY</a> ></li>
+				<li><a href="index.html">HOME</a> ></li>
                 <li><a href="folder.html">FILES</a> ></li>
                 <li class="nav-current">3/21</li>
 			</ul>
@@ -31,11 +31,11 @@
 	<div class="file_321">
 		<h1 class="file_date">3/21/2026</h1>
 			<div class="file_321_text">
-				<h2 class="prediction">Prediction</h2>
 				<p class="name_of_tarot">Four of Cups (Reversed)</p>
 			</div>
 
 			<div class="tarto_section">
+				<h2 class="prediction">Prediction</h2>
 				<img src="images/321.jpg" alt="Four of Cups (Reversed)">
 				<p class="tarot_reading_luck"><strong>Luck:</strong> A subtle shift toward openness. New possibilities or small opportunities may become noticeable again.</p>
 				<p class="tarot_reading_mood"><strong>Mood:</strong> Gradually more receptive and willing to engage, moving out of previous indifference or stagnation.</p>
@@ -47,11 +47,59 @@
 			</div>
 
 			<div class="diary">
-				<p class="diary_luck">Luck: The day felt slightly more open, like I was more willing to engage with things around me.</p>
-				<p class="diary_mood">Mood: I felt a bit more responsive and less withdrawn than before. Not a big emotional shift, but enough to take action.</p>
-				<p class="diary_event">Event: I went to work out. It wasn’t something I felt strongly excited about at first, but once I started, it felt like a step toward getting back into a better rhythm.</p>
+				<p class="diary_luck"><strong>Luck</strong></p>
+				<div class="diary-field" id="diary-luck" data-placeholder="WRITE YOUR DIARY" data-key="luck"></div>
+				<p class="diary_mood"><strong>Mood</strong></p>
+				<div class="diary-field" id="diary-mood" data-placeholder="WRITE YOUR DIARY" data-key="mood"></div>
+				<p class="diary_event"><strong>Possible Event</strong></p>
+				<div class="diary-field" id="diary-event" data-placeholder="WRITE YOUR DIARY" data-key="event"></div>
 			</div>
 	</div>
+
+	<button id="entry-edit-btn">EDIT</button>
+
+	<script>
+	(function () {
+		var KEY = 'diary_321';
+		var DEFAULTS = {
+			luck:  "The day felt slightly more open, like I was more willing to engage with things around me.",
+			mood:  "I felt a bit more responsive and less withdrawn than before. Not a big emotional shift, but enough to take action.",
+			event: "I went to work out. It wasn't something I felt strongly excited about at first, but once I started, it felt like a step toward getting back into a better rhythm."
+		};
+		var saved = {};
+		try { saved = JSON.parse(localStorage.getItem(KEY) || '{}'); } catch (e) {}
+		var fields = {
+			luck:  document.getElementById('diary-luck'),
+			mood:  document.getElementById('diary-mood'),
+			event: document.getElementById('diary-event')
+		};
+		['luck', 'mood', 'event'].forEach(function (k) {
+			var text = (saved[k] !== undefined) ? saved[k] : DEFAULTS[k];
+			if (text) fields[k].textContent = text;
+		});
+		var editBtn = document.getElementById('entry-edit-btn');
+		var editing = false;
+		editBtn.addEventListener('click', function () {
+			editing = !editing;
+			['luck', 'mood', 'event'].forEach(function (k) {
+				if (editing) {
+					fields[k].setAttribute('contenteditable', 'true');
+				} else {
+					fields[k].removeAttribute('contenteditable');
+					var text = fields[k].innerText.trim();
+					saved[k] = text;
+					if (!text) fields[k].innerHTML = '';
+				}
+			});
+			if (!editing) {
+				localStorage.setItem(KEY, JSON.stringify(saved));
+			} else {
+				fields.luck.focus();
+			}
+			editBtn.textContent = editing ? 'SAVE' : 'EDIT';
+		});
+	})();
+	</script>
 
 </body>
 </html>

@@ -150,6 +150,25 @@ body > header {
   font-weight: 700;
 }
 
+/* ── Tarot + button on folder page ──────────────────────────── */
+.tarot-plus {
+  position: fixed;
+  right: 2rem;
+  bottom: 2rem;
+  color: var(--ink);
+  font-family: "Quantico", sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  text-decoration: none;
+  z-index: 10;
+  border: 1.5px solid var(--ink);
+  padding: 0.4rem 1.25rem;
+}
+
+.tarot-plus:hover {
+  font-weight: 700;
+}
+
 /* ── Folder stack — fixed from screen bottom ─────────────────── */
 /*
   Border technique: clip-path clips CSS borders, so we use two layers:
@@ -525,7 +544,7 @@ div[class$="_text"] {
   margin: 0;
   padding-left: 1rem;
   font-size: 1rem;
-  font-weight: 400;
+  font-weight: 700;
   line-height: var(--line-step);
 }
 
@@ -708,5 +727,598 @@ div[class$="_text"] {
 
   .name_of_tarot {
     padding-left: 0;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   HOME CANVAS — infinite pan/zoom canvas on index.html
+   ═══════════════════════════════════════════════════════════════ */
+
+#home-wrap {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  cursor: grab;
+}
+
+#home-wrap.panning {
+  cursor: grabbing;
+}
+
+#home-canvas {
+  position: absolute;
+  top: 0;
+  left: 0;
+  transform-origin: 0 0;
+}
+
+/* ── Canvas drawer cards ─────────────────────────────────────── */
+.canvas-drawer {
+  position: absolute;
+  width: 39.25rem;
+  height: 10.8125rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 8px 5px rgba(0, 0, 0, 0.25);
+  cursor: pointer;
+  user-select: none;
+}
+
+.canvas-drawer::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1.125rem;
+  box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
+}
+
+.canvas-drawer-label {
+  padding: 0.78rem 2.25rem;
+  font-family: "Quantico", sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 4px 4px 0 rgba(0, 0, 0, 0.25);
+  transition: font-weight 0.15s;
+}
+
+/* Style: light (default — Selina's drawer, matches original .drawer exactly) */
+.canvas-drawer.style-light                              { background: #F1F1F1; }
+.canvas-drawer.style-light::before                      { background: #C4C4C4; box-shadow: 0 4px 4px 0 rgba(0,0,0,0.25); }
+.canvas-drawer.style-light .canvas-drawer-label         { background: #DCDCC4; color: #000; }
+.canvas-drawer.style-light:hover                        { background: #DEDEDE; }
+.canvas-drawer.style-light:hover::before                { background: #B6B6B6; }
+.canvas-drawer.style-light:hover .canvas-drawer-label   { background: #B7B69F; color: #FFF; font-weight: 700; }
+
+/* Style: metal (texture photo) */
+.canvas-drawer.style-metal {
+  background-image: url('../images/texture/metaltexture.jpg');
+  background-size: cover;
+  background-position: center;
+}
+.canvas-drawer.style-metal::before                      { background: rgba(0, 0, 0, 0.45); }
+.canvas-drawer.style-metal .canvas-drawer-label         { background: #fff; color: #000; }
+.canvas-drawer.style-metal:hover .canvas-drawer-label   { font-weight: 700; }
+
+/* Style: wood (texture photo) */
+.canvas-drawer.style-wood {
+  background-image: url('../images/texture/woodtexture.jpg');
+  background-size: cover;
+  background-position: center;
+}
+.canvas-drawer.style-wood::before                       { background: rgba(0, 0, 0, 0.3); }
+.canvas-drawer.style-wood .canvas-drawer-label          { background: #fff; color: #000; }
+.canvas-drawer.style-wood:hover .canvas-drawer-label    { font-weight: 700; }
+
+/* ── Drawer delete confirmation popup ───────────────────────── */
+#drawer-delete-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 600;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+#drawer-delete-modal {
+  width: 30.5rem;
+  height: 13.375rem;
+  background: #FFF;
+  box-shadow: 0 4px 4px 2px rgba(0, 0, 0, 0.25);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 2.5rem;
+}
+
+.drawer-confirm-btn {
+  border: 1.5px solid #000;
+  background: #fff;
+  padding: 0.5rem 2rem;
+  font-family: "Quantico", sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  cursor: pointer;
+}
+
+.drawer-confirm-btn:hover { font-weight: 700; }
+
+/* ── Floating tarot cards (home page ambient effect) ─────────── */
+#float-cards {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 10;
+  overflow: hidden;
+}
+
+.float-card {
+  position: absolute;
+  top: 0;
+  left: 0;
+  border-radius: 6px;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.22);
+  will-change: transform;
+}
+
+.float-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 6px;
+  display: block;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* ── ADD DRAWER button (home page) ──────────────────────────── */
+#add-drawer-btn {
+  position: fixed;
+  right: 2rem;
+  bottom: 2rem;
+  border: 1.5px solid var(--ink);
+  background: #fff;
+  padding: 0.4rem 1.25rem;
+  font-family: "Quantico", sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  cursor: pointer;
+  z-index: 200;
+}
+
+#add-drawer-btn:hover { font-weight: 700; }
+
+/* ── Drawer creation modal ───────────────────────────────────── */
+#drawer-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 500;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+#drawer-modal {
+  position: relative;
+  width: min(65.75rem, calc(100vw - 2rem));
+  height: 33rem;
+  background: #FFF;
+  box-shadow: 0 4px 4px 2px rgba(0, 0, 0, 0.25);
+  padding: 2.5rem 3.5rem 2rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.5rem;
+  overflow: hidden;
+}
+
+#modal-close {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  width: 0.845rem;
+  height: 0.845rem;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+#modal-close svg { width: 100%; height: 100%; display: block; }
+
+#drawer-name-input {
+  width: 22rem;
+  max-width: 100%;
+  border: none;
+  border-bottom: 1px solid #000;
+  outline: none;
+  font-family: "Quantico", sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  text-align: center;
+  background: transparent;
+  padding: 0.25rem 0;
+  color: var(--ink);
+}
+
+#drawer-name-input::placeholder { color: #999; }
+
+.modal-section-label {
+  color: #000;
+  font-family: "Quantico", sans-serif;
+  font-size: 1rem;
+  font-style: normal;
+  font-weight: 400;
+  line-height: normal;
+  align-self: flex-start;
+  margin: 0;
+}
+
+#drawer-options {
+  display: flex;
+  gap: 1.5rem;
+  justify-content: center;
+}
+
+.drawer-option {
+  width: 18.5rem;
+  height: 14.125rem;
+  flex-shrink: 0;
+  border: 1px solid #000;
+  padding: 0;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: box-shadow 0.15s;
+}
+
+.drawer-option:hover {
+  border: 2.5px solid #000;
+}
+
+.drawer-option.selected {
+  border: 2.5px solid #000;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
+}
+
+/* Mini drawer preview centred inside the card */
+.drawer-opt-preview {
+  width: 15.0625rem;
+  height: 4.1875rem;
+  box-shadow: 0 4px 8px 5px rgba(0, 0, 0, 0.25);
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Top strip inside preview */
+.drawer-opt-preview::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 22%;
+}
+
+.drawer-opt-label {
+  font-family: "Quantico", sans-serif;
+  font-size: 0.5rem;
+  font-weight: 400;
+  padding: 0.2rem 0.5rem;
+  position: relative;
+  z-index: 1;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
+}
+
+/* Light */
+.drawer-opt-preview.style-light                      { background: #F1F1F1; }
+.drawer-opt-preview.style-light::before              { background: #C4C4C4; }
+.drawer-opt-preview.style-light .drawer-opt-label    { background: #DCDCC4; color: #000; }
+
+/* Metal — texture photo */
+.drawer-opt-preview.style-metal {
+  background-image: url('../images/texture/metaltexture.jpg');
+  background-size: cover;
+  background-position: center;
+}
+.drawer-opt-preview.style-metal::before              { background: rgba(0, 0, 0, 0.45); }
+.drawer-opt-preview.style-metal .drawer-opt-label    { background: #fff; color: #000; }
+
+/* Wood — texture photo */
+.drawer-opt-preview.style-wood {
+  background-image: url('../images/texture/woodtexture.jpg');
+  background-size: cover;
+  background-position: center;
+}
+.drawer-opt-preview.style-wood::before               { background: rgba(0, 0, 0, 0.3); }
+.drawer-opt-preview.style-wood .drawer-opt-label     { background: #fff; color: #000; }
+
+#drawer-create-btn {
+  border: 1.5px solid #000;
+  background: #fff;
+  padding: 0.5rem 3rem;
+  font-family: "Quantico", sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  cursor: pointer;
+  margin-top: calc(2.3rem - 1.5rem); /* 2.3rem total from options above (gap already adds 1.5rem) */
+}
+
+#drawer-create-btn:hover { font-weight: 700; }
+
+/* ── Modal mobile responsive ─────────────────────────────────── */
+@media (max-width: 600px) {
+  #drawer-modal {
+    height: auto;
+    padding: 2.5rem 1.5rem 2rem;
+  }
+
+  #drawer-options {
+    flex-direction: column;
+    align-items: center;
+  }
+
+  .drawer-option {
+    width: min(18.5rem, calc(100vw - 4rem));
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   USER FOLDER — dynamic entries saved from reading panel
+   ═══════════════════════════════════════════════════════════════ */
+
+/* Outer shell — same pattern as .folder_1…9 */
+.folder_user {
+  position: fixed;
+  left: 50%;
+  transform: translateX(-50%);
+  cursor: pointer;
+  user-select: none;
+  transition: height 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+  filter:
+    drop-shadow(-1px  0    0 #000)
+    drop-shadow( 1px  0    0 #000)
+    drop-shadow( 0   -1px  0 #000)
+    drop-shadow( 0    1px  0 #000);
+  width: min(76.375rem, calc(100vw - 1rem));
+  height: 5.28125rem;
+}
+
+/* Body color from JS-supplied custom property */
+.folder_user .folder-body {
+  background: var(--user-color, #d9d6cf);
+}
+
+/* Tab shape — right tab (odd absolute index in combined stack) */
+.folder_user.tab-right .folder-body {
+  clip-path: polygon(
+    0%     1.5rem,
+    60%    1.5rem,
+    61.7%  0%,
+    78.3%  0%,
+    80%    1.5rem,
+    100%   1.5rem,
+    98%    100%,
+    2%     100%
+  );
+}
+
+/* Tab shape — left tab (even absolute index) */
+.folder_user.tab-left .folder-body {
+  clip-path: polygon(
+    0%     1.5rem,
+    21%    1.5rem,
+    22.7%  0%,
+    39.3%  0%,
+    41%    1.5rem,
+    100%   1.5rem,
+    98%    100%,
+    2%     100%
+  );
+}
+
+/* Expanded / dragging — straight sides */
+.folder_user.folder-expanded {
+  height: 13rem !important;
+}
+
+.folder_user.tab-right.folder-dragging .folder-body,
+.folder_user.tab-right.folder-expanded .folder-body {
+  clip-path: polygon(
+    0%     1.5rem,
+    60%    1.5rem,
+    61.7%  0%,
+    78.3%  0%,
+    80%    1.5rem,
+    100%   1.5rem,
+    100%   100%,
+    0%     100%
+  );
+}
+
+.folder_user.tab-left.folder-dragging .folder-body,
+.folder_user.tab-left.folder-expanded .folder-body {
+  clip-path: polygon(
+    0%     1.5rem,
+    21%    1.5rem,
+    22.7%  0%,
+    39.3%  0%,
+    41%    1.5rem,
+    100%   1.5rem,
+    100%   100%,
+    0%     100%
+  );
+}
+
+/* Label position inside tab */
+.folder_user.tab-right .folder-label {
+  left: 70%;
+  transform: translateX(-50%);
+}
+
+.folder_user.tab-left .folder-label {
+  left: 31%;
+  transform: translateX(-50%);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   USER FILE PAGE — entry.html notebook paper container
+   ═══════════════════════════════════════════════════════════════ */
+
+.file_user {
+  position: relative;
+  width: min(50.75rem, calc(100vw - 4rem));
+  min-height: 64.5625rem;
+  margin: 5.6rem auto 0;
+  padding: 6rem 0 8rem;
+  border: 1px solid #000;
+  background: var(--user-color, #d9d6cf);
+}
+
+/* Tab (top-right, same geometry as static files) */
+.file_user::before {
+  content: "";
+  position: absolute;
+  top: -1.875rem;
+  right: 5.845rem;
+  width: 11.836rem;
+  height: 1.875rem;
+  border-top: 1px solid #000;
+  border-bottom: 0;
+  clip-path: polygon(0 100%, 8.6% 0, 91.4% 0, 100% 100%);
+  filter: drop-shadow(-1px 0 0 #000) drop-shadow(1px 0 0 #000);
+  background: var(--user-color, #d9d6cf);
+  z-index: 2;
+}
+
+/* Ruled lines */
+.file_user::after {
+  content: "";
+  position: absolute;
+  left: 4rem;
+  right: 4rem;
+  top: 1.875rem;
+  bottom: 2.5rem;
+  background:
+    repeating-linear-gradient(
+      to bottom,
+      #ffffff,
+      #ffffff calc(2.0625rem - 1px),
+      var(--rule) calc(2.0625rem - 1px),
+      var(--rule) 2.0625rem
+    );
+  z-index: 0;
+}
+
+/* Bring all children above ruled lines */
+.file_user > *:not(.file_date) {
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Diary editable fields ────────────────────────────────────── */
+
+.diary-field {
+  margin: 0;
+  font-size: 1rem;
+  font-family: "Quantico", sans-serif;
+  color: var(--ink);
+  line-height: var(--line-step);
+  min-height: var(--line-step);
+  outline: none;
+}
+
+/* Placeholder shown when field is truly empty */
+.diary-field:empty::before {
+  content: attr(data-placeholder);
+  color: #999;
+  pointer-events: none;
+  display: block;
+}
+
+/* ── EDIT / CONFIRM button ───────────────────────────────────── */
+
+#entry-edit-btn {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  border: 1.5px solid #000;
+  background: #fff;
+  padding: 0.5rem 1.5rem;
+  font-family: "Quantico", sans-serif;
+  font-size: 0.875rem;
+  font-weight: 400;
+  cursor: pointer;
+  z-index: 100;
+}
+
+#entry-edit-btn:hover { font-weight: 700; }
+
+/* ── Tablet overrides for .file_user ────────────────────────── */
+@media (max-width: 900px) {
+  .file_user::after {
+    left: 2.5rem;
+    right: 2.5rem;
+  }
+
+  .file_user .file_user_text,
+  .file_user .tarto_section,
+  .file_user .prediction_title,
+  .file_user .diary {
+    margin-left: 4rem;
+    margin-right: 4rem;
+  }
+}
+
+/* ── Mobile overrides ────────────────────────────────────────── */
+@media (max-width: 640px) {
+  .folder_user {
+    width: calc(100vw - 1rem);
+  }
+
+  .file_user {
+    width: calc(100vw - 1.5rem);
+    min-height: 0;
+    padding: 3.9375rem 0 4.125rem;
+  }
+
+  .file_user::before {
+    top: -1.6875rem;
+    right: 0.75rem;
+    width: 7.5rem;
+    height: 1.6875rem;
+  }
+
+  .file_user .file_date {
+    top: -1.1rem;
+    right: 1.4rem;
+    width: 5.8rem;
+    font-size: 0.8rem;
+  }
+
+  .file_user::after {
+    left: 1.25rem;
+    right: 1.25rem;
+  }
+
+  .file_user .file_user_text,
+  .file_user .tarto_section,
+  .file_user .prediction_title,
+  .file_user .diary {
+    margin-left: 2rem;
+    margin-right: 2rem;
   }
 }
