@@ -169,6 +169,29 @@ body > header {
   font-weight: 700;
 }
 
+/* ── Empty drawer state ──────────────────────────────────────── */
+.drawer-empty-state {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  color: var(--ink);
+  font-family: "Quantico", sans-serif;
+  font-size: 1rem;
+  font-weight: 400;
+  text-decoration: none;
+  text-align: center;
+  letter-spacing: 0.08em;
+  opacity: 0.45;
+  z-index: 10;
+  transition: opacity 0.2s;
+}
+
+.drawer-empty-state:hover {
+  opacity: 1;
+  font-weight: 700;
+}
+
 /* ── Folder stack — fixed from screen bottom ─────────────────── */
 /*
   Border technique: clip-path clips CSS borders, so we use two layers:

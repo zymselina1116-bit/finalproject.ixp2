@@ -25,7 +25,8 @@
 		</nav>
 	</header>
 
-	<a class="tarot-plus" id="add-btn" href="#">ADD</a>
+	<a class="tarot-plus" id="add-btn" href="#" style="display:none">ADD</a>
+	<a class="drawer-empty-state" id="empty-state" href="#">PICK UP A CARD AND ADD A FILE</a>
 
 	<script>
 	(function () {
@@ -43,12 +44,22 @@
 
 		document.title     = drawer.name + ' — Files';
 		document.getElementById('nav-name').textContent = drawer.name;
-		document.getElementById('add-btn').href = 'canvas.html?drawer=' + drawerId;
+		document.getElementById('add-btn').href    = 'canvas.html?drawer=' + drawerId;
+		document.getElementById('empty-state').href = 'canvas.html?drawer=' + drawerId;
 
 		/* ── Load entries for this drawer ─────────────────────── */
 		var allEntries = [];
 		try { allEntries = JSON.parse(localStorage.getItem('tarot_entries') || '[]'); } catch (e) {}
 		var entries = allEntries.filter(function (e) { return e.drawerId === drawerId; });
+
+		/* ── Show empty state or ADD button ───────────────────── */
+		if (entries.length === 0) {
+			document.getElementById('empty-state').style.display = '';
+			document.getElementById('add-btn').style.display     = 'none';
+		} else {
+			document.getElementById('empty-state').style.display = 'none';
+			document.getElementById('add-btn').style.display     = '';
+		}
 
 		/* ── Build folder elements ────────────────────────────── */
 		var folders = [];

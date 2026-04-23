@@ -124,44 +124,51 @@
 		if (entry.diary.mood)  diaryMood.textContent  = entry.diary.mood;
 		if (entry.diary.event) diaryEvent.textContent = entry.diary.event;
 
-		/* ── EDIT / CONFIRM button ──────────────────────────── */
+		/* ── EDIT / SAVE button ────────────────────────────────── */
 		var editBtn     = document.getElementById('entry-edit-btn');
 		var diaryFields = document.querySelectorAll('.diary-field');
+		var hasContent  = !!(entry.diary.luck || entry.diary.mood || entry.diary.event);
 		var editing     = false;
 
-		editBtn.addEventListener('click', function () {
-			editing = !editing;
-
+		function saveDiary() {
 			diaryFields.forEach(function (field) {
-				if (editing) {
-					field.setAttribute('contenteditable', 'true');
-				} else {
-					field.removeAttribute('contenteditable');
-					var text = field.innerText.trim();
-					entry.diary[field.dataset.key] = text;
-					// Ensure truly empty so :empty placeholder shows
-					if (!text) field.innerHTML = '';
-				}
+				field.removeAttribute('contenteditable');
+				var text = field.innerText.trim();
+				entry.diary[field.dataset.key] = text;
+				if (!text) field.innerHTML = '';
 			});
-
-			if (!editing) {
-				// Persist updated diary to localStorage
-				var all = [];
-				try { all = JSON.parse(localStorage.getItem('tarot_entries') || '[]'); } catch (e) {}
-				for (var j = 0; j < all.length; j++) {
-					if (all[j].id === entry.id) {
-						all[j].diary = entry.diary;
-						break;
-					}
-				}
-				localStorage.setItem('tarot_entries', JSON.stringify(all));
-
-				// Focus first field when entering edit mode
-			} else {
-				diaryLuck.focus();
+			var all = [];
+			try { all = JSON.parse(localStorage.getItem('tarot_entries') || '[]'); } catch (e) {}
+			for (var j = 0; j < all.length; j++) {
+				if (all[j].id === entry.id) { all[j].diary = entry.diary; break; }
 			}
+			localStorage.setItem('tarot_entries', JSON.stringify(all));
+		}
 
-			editBtn.textContent = editing ? 'SAVE' : 'EDIT';
+		if (!hasContent) {
+			/* First visit — fields directly editable, no EDIT button needed */
+			editing = true;
+			editBtn.textContent = 'SAVE';
+			diaryFields.forEach(function (field) {
+				field.setAttribute('contenteditable', 'true');
+			});
+		}
+
+		editBtn.addEventListener('click', function () {
+			if (editing) {
+				/* SAVE */
+				saveDiary();
+				editing = false;
+				editBtn.textContent = 'EDIT';
+			} else {
+				/* Enter edit mode */
+				editing = true;
+				diaryFields.forEach(function (field) {
+					field.setAttribute('contenteditable', 'true');
+				});
+				diaryLuck.focus();
+				editBtn.textContent = 'SAVE';
+			}
 		});
 	})();
 	</script>
